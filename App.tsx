@@ -4,7 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import type { Entry, Mood } from './src/types';
 import { loadEntries, saveEntries } from './src/storage';
 import { getReflection } from './src/services/reflection';
-import { configureRevenueCat, type PremiumState } from './src/services/revenuecat';
+import { configureRevenueCat, purchasePro, type PremiumState } from './src/services/revenuecat';
 
 type Screen = 'today' | 'checkin' | 'journal' | 'insights' | 'plus';
 
@@ -37,6 +37,11 @@ export default function App() {
     await saveEntries(next);
     setReflection(result.reflection);
     setText('');
+  }
+
+  async function activatePlus() {
+    const nextState = await purchasePro();
+    setPremium(nextState);
   }
 
   return (
@@ -95,7 +100,13 @@ export default function App() {
         {screen === 'plus' && <>
           <Text style={s.kicker}>INSIDE ME PLUS</Text><Text style={s.title}>RevenueCat-powered upgrades.</Text>
           <View style={s.card}><Text style={s.cardTitle}>Free</Text><Text>Check-ins, journal, basic reflections</Text></View>
-          <View style={s.card}><Text style={s.cardTitle}>Plus</Text><Text>Longer history, exports, deeper pattern tools</Text><Text style={s.price}>{premium.isPro ? 'Plus active' : premium.priceText ?? 'Offering not connected yet'}</Text>{!!premium.message && <Text>{premium.message}</Text>}</View>
+          <View style={s.card}>
+            <Text style={s.cardTitle}>Plus</Text>
+            <Text>Longer history, exports, deeper pattern tools</Text>
+            <Text style={s.price}>{premium.isPro ? 'Plus active' : premium.priceText ?? 'Offering not connected yet'}</Text>
+            {!!premium.message && <Text>{premium.message}</Text>}
+            {!premium.isPro && premium.configured && <Pressable style={s.button} onPress={activatePlus}><Text style={s.buttonText}>Unlock Plus</Text></Pressable>}
+          </View>
         </>}
       </ScrollView>
     </SafeAreaView>
