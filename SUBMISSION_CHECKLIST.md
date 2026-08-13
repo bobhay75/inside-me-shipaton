@@ -1,0 +1,21 @@
+# Shipaton Next Gen Submission Checklist
+
+- [ ] Join RevenueCat Shipaton 2026 on Devpost.
+- [ ] Use the qualifying student academic email for Next Gen eligibility.
+- [x] Keep this repository public.
+- [x] Include an open-source license.
+- [ ] Configure a RevenueCat Android app for `com.bobsome1.insideme`.
+- [ ] Create RevenueCat entitlement `pro`.
+- [ ] Create a current offering with at least one package.
+- [ ] Add the public RevenueCat Android SDK key to local `.env` only.
+- [ ] Produce an Android development APK and install it on the demo phone.
+- [ ] Verify a check-in survives app restart.
+- [ ] Verify the journal and pattern flow with multiple check-ins.
+- [ ] Verify the RevenueCat offering loads on the Plus screen.
+- [ ] Verify entitlement behavior in the configured test environment.
+- [ ] Create a 1024×1024 app icon.
+- [ ] Capture a clean app screenshot for Devpost.
+- [ ] Record a public YouTube or Vimeo demo under two minutes.
+- [ ] Paste the final project description into Devpost.
+- [ ] Submit for the Next Gen Award before the official deadline.
+- [ ] Recheck the official rules immediately before submission.

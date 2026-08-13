@@ -1,0 +1,20 @@
+{
+  "expo": {
+    "name": "Inside Me",
+    "slug": "inside-me-shipaton",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "android": {
+      "package": "com.bobsome1.insideme",
+      "adaptiveIcon": {
+        "backgroundColor": "#F4F0E8"
+      }
+    },
+    "ios": {
+      "bundleIdentifier": "com.bobsome1.insideme",
+      "supportsTablet": true
+    },
+    "plugins": ["expo-dev-client"]
+  }
+}
