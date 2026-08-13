@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import type { Entry, Mood } from './src/types';
@@ -6,7 +6,7 @@ import { loadEntries, saveEntries } from './src/storage';
 import { getReflection } from './src/services/reflection';
 import { configureRevenueCat, type PremiumState } from './src/services/revenuecat';
 
-type Screen = 'today' | 'checkin' | 'journal' | 'plus';
+type Screen = 'today' | 'checkin' | 'journal' | 'insights' | 'plus';
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('today');
@@ -18,6 +18,11 @@ export default function App() {
 
   useEffect(() => { loadEntries().then(setEntries); }, []);
   useEffect(() => { if (screen === 'plus') configureRevenueCat().then(setPremium); }, [screen]);
+
+  const averageMood = useMemo(() => {
+    if (!entries.length) return null;
+    return entries.reduce((sum, item) => sum + item.mood, 0) / entries.length;
+  }, [entries]);
 
   async function save() {
     const result = await getReflection(text, mood);
@@ -42,7 +47,7 @@ export default function App() {
         <Text style={s.pill}>PRIVATE</Text>
       </View>
       <View style={s.nav}>
-        {(['today', 'checkin', 'journal', 'plus'] as Screen[]).map(item => (
+        {(['today', 'checkin', 'journal', 'insights', 'plus'] as Screen[]).map(item => (
           <Pressable key={item} onPress={() => setScreen(item)}><Text style={screen === item ? s.active : s.link}>{item}</Text></Pressable>
         ))}
       </View>
@@ -70,6 +75,23 @@ export default function App() {
           {entries.map(entry => <View key={entry.id} style={s.card}><Text style={s.cardTitle}>Mood {entry.mood}/5</Text><Text style={s.body}>{entry.text || 'No note added.'}</Text><Text>{entry.reflection}</Text></View>)}
         </>}
 
+        {screen === 'insights' && <>
+          <Text style={s.kicker}>INSIGHTS</Text>
+          <Text style={s.title}>Patterns before conclusions.</Text>
+          <Text style={s.body}>A number is a clue. Your journal gives it context.</Text>
+          <View style={s.card}>
+            <Text style={s.big}>{averageMood === null ? '—' : averageMood.toFixed(1)}</Text>
+            <Text>average mood across {entries.length} check-ins</Text>
+          </View>
+          <View style={s.card}>
+            <Text style={s.cardTitle}>Mood distribution</Text>
+            {([1,2,3,4,5] as Mood[]).map(value => {
+              const count = entries.filter(entry => entry.mood === value).length;
+              return <Text key={value} style={s.body}>{value}/5: {count} check-in{count === 1 ? '' : 's'}</Text>;
+            })}
+          </View>
+        </>}
+
         {screen === 'plus' && <>
           <Text style={s.kicker}>INSIDE ME PLUS</Text><Text style={s.title}>RevenueCat-powered upgrades.</Text>
           <View style={s.card}><Text style={s.cardTitle}>Free</Text><Text>Check-ins, journal, basic reflections</Text></View>
@@ -87,8 +109,8 @@ const s = StyleSheet.create({
   sub: { color: '#675F56', fontSize: 12 },
   pill: { fontSize: 10, fontWeight: '900', borderWidth: 1, borderRadius: 20, padding: 7 },
   nav: { flexDirection: 'row', justifyContent: 'space-around', paddingBottom: 10 },
-  link: { color: '#675F56', textTransform: 'capitalize' },
-  active: { color: '#1D2B26', fontWeight: '900', textTransform: 'capitalize' },
+  link: { color: '#675F56', textTransform: 'capitalize', fontSize: 12 },
+  active: { color: '#1D2B26', fontWeight: '900', textTransform: 'capitalize', fontSize: 12 },
   content: { padding: 20, paddingBottom: 60 },
   kicker: { color: '#8C5D44', fontWeight: '900', letterSpacing: 2, fontSize: 11 },
   title: { fontSize: 30, lineHeight: 36, fontWeight: '900', color: '#1D2B26', marginVertical: 12 },
