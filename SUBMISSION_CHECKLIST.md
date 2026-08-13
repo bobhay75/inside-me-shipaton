@@ -4,15 +4,19 @@
 - [ ] Use the qualifying student academic email for Next Gen eligibility.
 - [x] Keep this repository public.
 - [x] Include an open-source license.
-- [ ] Configure a RevenueCat Android app for `com.bobsome1.insideme`.
-- [ ] Create RevenueCat entitlement `pro`.
+- [x] Build the core Today → Check-in → Journal → Insights → Plus flow.
+- [x] Add RevenueCat entitlement/offering code and test upgrade action.
+- [x] Add automated TypeScript CI and get a passing run.
+- [ ] Create/configure the RevenueCat project and Test Store.
+- [ ] Create Test Store product `inside_me_plus_monthly`.
+- [ ] Create RevenueCat entitlement `pro` and attach the product.
 - [ ] Create a current offering with at least one package.
-- [ ] Add the public RevenueCat Android SDK key to local `.env` only.
+- [ ] Add the public RevenueCat Test Store SDK key to local `.env` only.
 - [ ] Produce an Android development APK and install it on the demo phone.
 - [ ] Verify a check-in survives app restart.
-- [ ] Verify the journal and pattern flow with multiple check-ins.
+- [ ] Verify the journal and Insights flow with multiple check-ins.
 - [ ] Verify the RevenueCat offering loads on the Plus screen.
-- [ ] Verify entitlement behavior in the configured test environment.
+- [ ] Verify the test upgrade activates the `pro` entitlement.
 - [ ] Create a 1024×1024 app icon.
 - [ ] Capture a clean app screenshot for Devpost.
 - [ ] Record a public YouTube or Vimeo demo under two minutes.
