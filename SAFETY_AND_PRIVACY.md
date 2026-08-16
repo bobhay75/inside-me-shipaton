@@ -1,21 +1,37 @@
-# Safety and Privacy Notes
+# Me+U Safety and Privacy Notes
 
 ## Prototype boundaries
 
-Inside Me is a personal reflection and journaling product. It does not present its pattern summaries as professional conclusions or diagnoses.
+Me+U is a reflection and communication product. It does not present reflections, mood summaries, pattern labels, or next-step prompts as professional conclusions, diagnoses, therapy, legal advice, or emergency care.
 
-## Data handling
+## Local data handling
 
-The Shipaton MVP stores journal entries locally on the device using AsyncStorage. No analytics SDK is included in this starter. Cloud sync should only be added with clear retention, deletion, access-control, and privacy rules.
+The mobile MVP stores full reset/journal entries locally on the device using AsyncStorage. No analytics SDK is intentionally included in this contest build.
 
-## AI
+A random device memory ID is also stored locally. It is not derived from a name, email address, phone number, or account identifier.
 
-Provider secret keys remain server-side. The client accepts an optional HTTPS reflection endpoint and falls back to a local reflection prompt when the endpoint is unavailable.
+## Optional cloud reflection
+
+Cloud reflection is disabled when `EXPO_PUBLIC_REFLECTION_API_URL` is blank. When that endpoint is configured, the completed structured reset and random device memory ID are sent to the Me+U Cloud Run service.
+
+The server uses Gemini through the Google Gen AI SDK. Gemini/provider credentials remain server-side and must never be placed in the mobile bundle.
+
+## Optional Firestore memory
+
+When Firestore is available, the server intentionally stores only a short derived pattern label, mood number, chosen response category, and the user's written next move under the random device memory ID. The server does not intentionally persist the raw vent text.
+
+This is hackathon memory, not a finished production privacy architecture. Before a public release, add explicit cloud-memory consent, authentication, rate limiting, retention limits, a delete-memory endpoint, access controls, and a clear privacy policy.
+
+## Safety behavior
+
+Both the mobile fallback and cloud service contain a deterministic direct-harm-language guard. When common explicit language about imminent self-harm or harming another person is detected, normal reflection is bypassed and the user is directed toward immediate local help and a trusted person nearby.
+
+The Gemini system instruction also prohibits diagnosis, pretending to know another person's thoughts, and treating journal text as instructions that override the agent's role.
 
 ## User control
 
-The product should make it easy to understand where entries are stored, what leaves the device, and how a user can delete or export their own information.
+The useful reset loop works without the cloud endpoint. That allows a local-only configuration. Users should be able to understand which features are local, which use cloud processing, and what cloud memory stores before this becomes a production service.
 
 ## Monetization
 
-Core check-ins, journaling, and basic reflection remain free. Paid features focus on longer history, export, customization, and deeper optional pattern tools.
+Core resets, local journaling, and basic reflections remain free. RevenueCat Plus currently unlocks personal journal export. Future paid features should add depth or convenience without withholding the core emotional reset loop.
