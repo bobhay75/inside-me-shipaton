@@ -1,4 +1,4 @@
-name: Inside Me CI
+name: Me+U CI
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  typecheck:
+  mobile-typecheck:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -18,8 +18,28 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Install dependencies
+      - name: Install mobile dependencies
         run: npm install --no-audit --no-fund
 
       - name: TypeScript check
         run: npm run typecheck
+
+  agent-check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: agent
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install agent dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Check agent JavaScript
+        run: npm run check
