@@ -9,6 +9,7 @@ export type ReflectionInput = {
   gratitudes: string[];
   nextMove: string;
   responseChoice: ResponseChoice;
+  memoryId?: string;
 };
 
 const choiceLabel: Record<ResponseChoice, string> = {
