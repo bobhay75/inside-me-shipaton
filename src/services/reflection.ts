@@ -1,4 +1,5 @@
 import type { Mood, ResponseChoice } from '../types';
+import { getMemoryId } from '../storage';
 
 export type ReflectionInput = {
   text: string;
@@ -66,10 +67,11 @@ export async function getReflection(input: ReflectionInput): Promise<{ reflectio
   const endpoint = process.env.EXPO_PUBLIC_REFLECTION_API_URL;
   if (endpoint) {
     try {
+      const memoryId = input.memoryId ?? (await getMemoryId());
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(input),
+        body: JSON.stringify({ ...input, memoryId }),
       });
       if (response.ok) {
         const data = (await response.json()) as { reflection?: string };
