@@ -624,7 +624,7 @@ export default function App() {
 
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#050611' },
-  ambient: { ...StyleSheet.absoluteFillObject, overflow: 'hidden' },
+  ambient: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, overflow: 'hidden' },
   glowViolet: {
     position: 'absolute',
     width: 330,
