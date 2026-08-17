@@ -97,3 +97,19 @@ export async function getReflection(
 
   return { reflection: localReflection(input), source: 'local' };
 }
+
+
+export async function deleteCloudMemory(): Promise<boolean> {
+  const endpoint =
+    process.env.EXPO_PUBLIC_REFLECTION_API_URL ||
+    'https://me-u-agent-809470834596.us-central1.run.app/reflect';
+  const memoryId = await getMemoryId();
+  const memoryEndpoint = endpoint.replace(/\/reflect\/?$/, `/memory/${encodeURIComponent(memoryId)}`);
+
+  try {
+    const response = await fetch(memoryEndpoint, { method: 'DELETE' });
+    return response.ok || response.status === 404;
+  } catch {
+    return false;
+  }
+}
