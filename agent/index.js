@@ -12,6 +12,10 @@ const ai = new GoogleGenAI({
 });
 
 let db = null;
+let memoryOperational = false;
+const requestWindows = new Map();
+const RATE_LIMIT = 20;
+const RATE_WINDOW_MS = 15 * 60 * 1000;
 try {
   if (!getApps().length) initializeApp({ credential: applicationDefault() });
   db = getFirestore();
@@ -22,12 +26,39 @@ try {
 const app = express();
 app.use(express.json({ limit: '100kb' }));
 app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-  if (req.method === 'OPTIONS') return res.sendStatus(204);
+  const origin = req.headers.origin;
+  if (origin === 'https://bobsome1.com') {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,DELETE,OPTIONS');
+  }
+  if (req.method === 'OPTIONS') return res.sendStatus(origin === 'https://bobsome1.com' ? 204 : 403);
   next();
 });
+
+function rateLimit(req, res, next) {
+  const forwarded = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+  const key = forwarded || req.ip || 'unknown';
+  const now = Date.now();
+  const recent = (requestWindows.get(key) || []).filter(time => now - time < RATE_WINDOW_MS);
+
+  if (recent.length >= RATE_LIMIT) {
+    res.setHeader('Retry-After', String(Math.ceil(RATE_WINDOW_MS / 1000)));
+    return res.status(429).json({ error: 'Too many reflection requests. Please try again later.' });
+  }
+
+  recent.push(now);
+  requestWindows.set(key, recent);
+  if (requestWindows.size > 5000) {
+    for (const [storedKey, times] of requestWindows) {
+      if (!times.some(time => now - time < RATE_WINDOW_MS)) requestWindows.delete(storedKey);
+    }
+  }
+  next();
+}
+
+app.use(['/reflect', '/memory'], rateLimit);
 
 function clean(value, max = 4000) {
   return typeof value === 'string' ? value.trim().slice(0, max) : '';
@@ -52,6 +83,7 @@ async function loadMemory(memoryId) {
       .limit(5)
       .get();
 
+    memoryOperational = true;
     return snapshot.docs.map(doc => {
       const data = doc.data();
       return {
@@ -62,6 +94,7 @@ async function loadMemory(memoryId) {
       };
     });
   } catch (error) {
+    memoryOperational = false;
     console.warn('Memory read skipped:', error instanceof Error ? error.message : error);
     return [];
   }
@@ -77,8 +110,10 @@ async function saveMemory(memoryId, data) {
       mood: Number(data.mood || 0),
       createdAt: FieldValue.serverTimestamp(),
     });
+    memoryOperational = true;
     return true;
   } catch (error) {
+    memoryOperational = false;
     console.warn('Memory write skipped:', error instanceof Error ? error.message : error);
     return false;
   }
@@ -100,7 +135,23 @@ function extractJson(text) {
 }
 
 app.get('/health', (_req, res) => {
-  res.json({ ok: true, service: 'me-u-reflection-agent', model: MODEL, memory: Boolean(db) });
+  res.json({ ok: true, service: 'me-u-reflection-agent', model: MODEL, memory: memoryOperational });
+});
+
+app.delete('/memory/:memoryId', async (req, res) => {
+  const memoryId = req.params.memoryId;
+  if (!validMemoryId(memoryId)) return res.status(400).json({ error: 'valid memoryId is required' });
+  if (!db) return res.status(503).json({ error: 'cloud memory is unavailable' });
+
+  try {
+    await db.recursiveDelete(db.collection('meu_memory').doc(memoryId));
+    memoryOperational = true;
+    return res.json({ ok: true });
+  } catch (error) {
+    memoryOperational = false;
+    console.error('Memory deletion failed:', error);
+    return res.status(503).json({ error: 'cloud memory could not be deleted' });
+  }
 });
 
 app.post('/reflect', async (req, res) => {
