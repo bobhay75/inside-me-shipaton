@@ -63,11 +63,20 @@ function localReflection(input: ReflectionInput) {
   return parts.join(' ');
 }
 
-export async function getReflection(input: ReflectionInput): Promise<{ reflection: string }> {
+export type ReflectionResult = {
+  reflection: string;
+  source: 'local' | 'cloud';
+};
+
+export async function getReflection(
+  input: ReflectionInput,
+  useCloud = false,
+): Promise<ReflectionResult> {
   const endpoint =
     process.env.EXPO_PUBLIC_REFLECTION_API_URL ||
     'https://me-u-agent-809470834596.us-central1.run.app/reflect';
-  if (endpoint) {
+
+  if (useCloud && endpoint) {
     try {
       const memoryId = input.memoryId ?? (await getMemoryId());
       const response = await fetch(endpoint, {
@@ -77,12 +86,14 @@ export async function getReflection(input: ReflectionInput): Promise<{ reflectio
       });
       if (response.ok) {
         const data = (await response.json()) as { reflection?: string };
-        if (data.reflection?.trim()) return { reflection: data.reflection.trim() };
+        if (data.reflection?.trim()) {
+          return { reflection: data.reflection.trim(), source: 'cloud' };
+        }
       }
     } catch {
-      // Me+U stays useful when the optional remote reflection agent is unavailable.
+      // Fall through to a private, on-device reflection.
     }
   }
 
-  return { reflection: localReflection(input) };
+  return { reflection: localReflection(input), source: 'local' };
 }
