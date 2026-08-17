@@ -64,7 +64,9 @@ function localReflection(input: ReflectionInput) {
 }
 
 export async function getReflection(input: ReflectionInput): Promise<{ reflection: string }> {
-  const endpoint = process.env.EXPO_PUBLIC_REFLECTION_API_URL;
+  const endpoint =
+    process.env.EXPO_PUBLIC_REFLECTION_API_URL ||
+    'https://me-u-agent-809470834596.us-central1.run.app/reflect';
   if (endpoint) {
     try {
       const memoryId = input.memoryId ?? (await getMemoryId());
