@@ -34,6 +34,14 @@ const moodLabels: Record<Mood, string> = {
   5: 'steady',
 };
 
+const navItems: { id: Screen; label: string; icon: string }[] = [
+  { id: 'today', label: 'Today', icon: '◉' },
+  { id: 'reset', label: 'Reset', icon: '✦' },
+  { id: 'journal', label: 'Journal', icon: '▤' },
+  { id: 'insights', label: 'Insights', icon: '◒' },
+  { id: 'plus', label: 'Plus', icon: '+' },
+];
+
 function formatClock(total: number) {
   const minutes = Math.floor(total / 60);
   const seconds = total % 60;
@@ -220,31 +228,43 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <SafeAreaView style={s.safe} edges={['top', 'left', 'right']}>
-      <StatusBar style="light" />
+      <StatusBar style="light" backgroundColor="#050611" />
+      <View pointerEvents="none" style={s.ambient}>
+        <View style={s.glowViolet} />
+        <View style={s.glowCyan} />
+      </View>
       <View style={s.header}>
         <View>
-          <Text style={s.brand}>Me+U</Text>
-          <Text style={s.sub}>You for you. Me for me.</Text>
+          <Text style={s.brand}>Me<Text style={s.brandPlus}>+</Text>U</Text>
+          <Text style={s.sub}>REFLECTION INTELLIGENCE · BUILD 04</Text>
         </View>
         <Text style={s.pill}>{cloudEnabled ? 'CLOUD AI' : 'LOCAL ONLY'}</Text>
       </View>
 
-      <View style={s.nav}>
-        {(['today', 'reset', 'journal', 'insights', 'plus'] as Screen[]).map(item => (
-          <Pressable key={item} onPress={() => (item === 'reset' ? beginReset() : setScreen(item))}>
-            <Text style={screen === item ? s.active : s.link}>{item}</Text>
-          </Pressable>
-        ))}
-      </View>
 
       <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
         {screen === 'today' && (
           <>
-            <Text style={s.kicker}>CHECK YOURSELF BEFORE THE MOMENT CHOOSES FOR YOU</Text>
-            <Text style={s.title}>Feel it. Sort it. Choose what happens next.</Text>
+            <View style={s.signalRow}>
+              <View style={s.liveDot} />
+              <Text style={s.kicker}>YOUR PRIVATE REFLECTION SPACE</Text>
+            </View>
+            <Text style={s.title}>Make space between the feeling and the move.</Text>
             <Text style={s.body}>
-              Me+U gives you a place to vent first, slow the reaction down, separate what is yours from what belongs to someone else, and choose a healthier next move.
+              Slow the reaction. Separate what is yours from what belongs to someone else. Choose what happens next with clarity.
             </Text>
+
+            <View style={s.aiStage}>
+              <View style={s.orbitOuter}>
+                <View style={s.orbitMid}>
+                  <View style={s.aiCore}>
+                    <Text style={s.aiCoreMark}>M+U</Text>
+                  </View>
+                </View>
+              </View>
+              <Text style={s.aiStatus}>CALM · CLARITY · CHOICE</Text>
+              <Text style={s.aiCaption}>{cloudEnabled ? 'GEMINI REFLECTION READY' : 'ON-DEVICE REFLECTION READY'}</Text>
+            </View>
 
             <View style={s.modeCard}>
               <View style={s.modeHeader}>
@@ -578,176 +598,306 @@ export default function App() {
           </>
         )}
       </ScrollView>
+
+      <View style={s.nav}>
+        {navItems.map(item => {
+          const selected = screen === item.id;
+          const isReset = item.id === 'reset';
+          return (
+            <Pressable
+              key={item.id}
+              accessibilityRole="button"
+              accessibilityState={{ selected }}
+              style={[s.navItem, isReset && s.navReset, selected && s.navItemActive]}
+              onPress={() => (isReset ? beginReset() : setScreen(item.id))}
+            >
+              <Text style={[s.navIcon, isReset && s.navResetIcon, selected && s.navIconActive]}>{item.icon}</Text>
+              <Text style={[s.link, selected && s.active]}>{item.label}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
       </SafeAreaView>
     </SafeAreaProvider>
   );
 }
 
 const s = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: '#070A16',
+  safe: { flex: 1, backgroundColor: '#050611' },
+  ambient: { ...StyleSheet.absoluteFillObject, overflow: 'hidden' },
+  glowViolet: {
+    position: 'absolute',
+    width: 330,
+    height: 330,
+    borderRadius: 165,
+    backgroundColor: '#4D22B8',
+    opacity: 0.18,
+    top: -190,
+    right: -150,
+  },
+  glowCyan: {
+    position: 'absolute',
+    width: 280,
+    height: 280,
+    borderRadius: 140,
+    backgroundColor: '#00CBE6',
+    opacity: 0.09,
+    bottom: 80,
+    left: -170,
   },
   header: {
     paddingHorizontal: 20,
-    paddingTop: 14,
-    paddingBottom: 14,
+    paddingTop: 12,
+    paddingBottom: 13,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#070A16',
+    borderBottomWidth: 1,
+    borderBottomColor: '#171B35',
+    backgroundColor: 'rgba(5,6,17,0.96)',
   },
-  brand: {
-    fontSize: 34,
-    lineHeight: 38,
-    fontWeight: '900',
-    letterSpacing: -1.5,
-    color: '#F7F8FF',
-  },
-  sub: { color: '#8E9BC2', fontSize: 12, fontWeight: '700', letterSpacing: 0.3 },
+  brand: { fontSize: 34, lineHeight: 38, fontWeight: '900', letterSpacing: -1.8, color: '#F8F9FF' },
+  brandPlus: { color: '#8B7CFF' },
+  sub: { color: '#687399', fontSize: 8, fontWeight: '900', letterSpacing: 1.4, marginTop: 2 },
   pill: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '900',
     letterSpacing: 1.2,
     borderWidth: 1,
-    borderColor: '#32E6FF',
-    borderRadius: 20,
+    borderColor: '#20DDF5',
+    borderRadius: 18,
     paddingHorizontal: 11,
     paddingVertical: 7,
-    color: '#32E6FF',
-    backgroundColor: '#0B2030',
+    color: '#70EDFF',
+    backgroundColor: '#071C29',
+    overflow: 'hidden',
   },
   nav: {
     flexDirection: 'row',
+    alignItems: 'flex-end',
     justifyContent: 'space-around',
-    paddingHorizontal: 8,
-    paddingTop: 6,
-    paddingBottom: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#1B2340',
-    backgroundColor: '#070A16',
+    paddingHorizontal: 7,
+    paddingTop: 8,
+    paddingBottom: 9,
+    borderTopWidth: 1,
+    borderTopColor: '#202544',
+    backgroundColor: '#090B18',
   },
-  link: { color: '#6F7A9D', textTransform: 'capitalize', fontSize: 12, paddingVertical: 7, paddingHorizontal: 5 },
-  active: {
-    color: '#F7F8FF',
+  navItem: { minWidth: 58, paddingVertical: 5, alignItems: 'center', borderRadius: 16 },
+  navReset: {
+    minWidth: 64,
+    marginTop: -24,
+    paddingTop: 10,
+    paddingBottom: 7,
+    borderWidth: 1,
+    borderColor: '#786DFF',
+    backgroundColor: '#5B4CF0',
+    shadowColor: '#7568FF',
+    shadowOpacity: 0.7,
+    shadowRadius: 15,
+    elevation: 12,
+  },
+  navItemActive: { backgroundColor: '#151936' },
+  navIcon: { color: '#657094', fontSize: 17, fontWeight: '900', marginBottom: 3 },
+  navResetIcon: { color: '#FFFFFF', fontSize: 22 },
+  navIconActive: { color: '#75EFFF' },
+  link: { color: '#687399', fontSize: 9, fontWeight: '800', letterSpacing: 0.3 },
+  active: { color: '#F5F6FF' },
+  content: { padding: 20, paddingTop: 24, paddingBottom: 118 },
+  signalRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  liveDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: '#22E2F7',
+    shadowColor: '#22E2F7',
+    shadowOpacity: 1,
+    shadowRadius: 7,
+    elevation: 6,
+  },
+  kicker: { color: '#59E9FA', fontWeight: '900', letterSpacing: 1.8, fontSize: 9, lineHeight: 16 },
+  title: {
+    fontSize: 36,
+    lineHeight: 41,
     fontWeight: '900',
-    textTransform: 'capitalize',
-    fontSize: 12,
-    paddingVertical: 7,
-    paddingHorizontal: 9,
-    borderRadius: 12,
-    backgroundColor: '#242058',
-    overflow: 'hidden',
+    letterSpacing: -1.3,
+    color: '#F8F9FF',
+    marginTop: 14,
+    marginBottom: 13,
   },
-  content: { padding: 20, paddingBottom: 96, backgroundColor: '#070A16' },
-  kicker: { color: '#32E6FF', fontWeight: '900', letterSpacing: 1.8, fontSize: 10, lineHeight: 16 },
-  title: { fontSize: 32, lineHeight: 38, fontWeight: '900', letterSpacing: -0.8, color: '#F7F8FF', marginVertical: 13 },
-  body: { fontSize: 16, lineHeight: 24, color: '#B8C0DB' },
-  cardBody: { fontSize: 15, lineHeight: 22, color: '#B8C0DB', marginTop: 9 },
-  heroCard: {
-    backgroundColor: '#121A35',
-    borderRadius: 24,
-    padding: 21,
+  body: { fontSize: 15, lineHeight: 23, color: '#ABB5D4' },
+  cardBody: { fontSize: 14, lineHeight: 22, color: '#AAB4D3', marginTop: 9 },
+  aiStage: {
+    alignItems: 'center',
+    backgroundColor: '#090C20',
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: '#282E59',
+    paddingVertical: 25,
     marginTop: 24,
-    borderWidth: 1,
-    borderColor: '#344A86',
-    shadowColor: '#5E5CFF',
+    overflow: 'hidden',
+    shadowColor: '#6F5EFF',
     shadowOpacity: 0.34,
-    shadowRadius: 22,
-    elevation: 9,
+    shadowRadius: 28,
+    elevation: 10,
   },
-  quote: { fontSize: 21, lineHeight: 28, fontWeight: '900', color: '#E9EAFF' },
-  card: {
-    backgroundColor: '#10162B',
+  orbitOuter: {
+    width: 154,
+    height: 154,
+    borderRadius: 77,
     borderWidth: 1,
-    borderColor: '#252F52',
+    borderColor: '#2BDBF0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#081424',
+    shadowColor: '#22E2F7',
+    shadowOpacity: 0.72,
+    shadowRadius: 24,
+    elevation: 12,
+  },
+  orbitMid: {
+    width: 124,
+    height: 124,
+    borderRadius: 62,
+    borderWidth: 7,
+    borderColor: '#262150',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#11102E',
+  },
+  aiCore: {
+    width: 92,
+    height: 92,
+    borderRadius: 46,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#6758F5',
+    borderWidth: 1,
+    borderColor: '#A8A1FF',
+    shadowColor: '#7F73FF',
+    shadowOpacity: 0.95,
+    shadowRadius: 22,
+    elevation: 14,
+  },
+  aiCoreMark: { color: '#FFFFFF', fontSize: 22, fontWeight: '900', letterSpacing: -1 },
+  aiStatus: { color: '#F5F6FF', fontSize: 10, fontWeight: '900', letterSpacing: 2, marginTop: 18 },
+  aiCaption: { color: '#69759C', fontSize: 8, fontWeight: '900', letterSpacing: 1.4, marginTop: 7 },
+  heroCard: {
+    backgroundColor: '#11152E',
+    borderRadius: 23,
+    padding: 20,
+    marginTop: 18,
+    borderWidth: 1,
+    borderColor: '#343B70',
+    shadowColor: '#5E50E8',
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  quote: { fontSize: 20, lineHeight: 27, fontWeight: '900', color: '#EDEFFF' },
+  card: {
+    backgroundColor: '#0D1024',
+    borderWidth: 1,
+    borderColor: '#242A4D',
     borderRadius: 21,
     padding: 18,
     marginTop: 16,
     shadowColor: '#000000',
-    shadowOpacity: 0.34,
+    shadowOpacity: 0.42,
     shadowRadius: 16,
     elevation: 5,
   },
-  cardTitle: { fontWeight: '900', color: '#F1F3FF', marginBottom: 7, fontSize: 16 },
+  cardTitle: { fontWeight: '900', color: '#F1F3FF', marginBottom: 7, fontSize: 15 },
   modeCard: {
-    backgroundColor: '#0B1225',
+    backgroundColor: '#0A1023',
     borderWidth: 1,
-    borderColor: '#273457',
-    borderRadius: 20,
+    borderColor: '#26375D',
+    borderRadius: 21,
     padding: 16,
-    marginTop: 20,
+    marginTop: 18,
   },
   modeHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   modeCopy: { flex: 1 },
-  modeStatus: { color: '#32E6FF', fontSize: 9, fontWeight: '900', letterSpacing: 1.2 },
+  modeStatus: { color: '#36E4F7', fontSize: 8, fontWeight: '900', letterSpacing: 1.2 },
   modeButtons: { flexDirection: 'row', gap: 9, marginTop: 14 },
   modeButton: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#2C385F',
-    borderRadius: 13,
+    borderColor: '#2C355C',
+    borderRadius: 14,
     paddingVertical: 11,
     alignItems: 'center',
-    backgroundColor: '#10162B',
+    backgroundColor: '#0D1328',
   },
-  modeButtonSelected: { backgroundColor: '#242058', borderColor: '#7B8CFF' },
-  modeButtonText: { color: '#8994B8', fontWeight: '800' },
-  modeButtonTextSelected: { color: '#F1F3FF' },
-  sourceTag: { color: '#32E6FF', fontSize: 9, fontWeight: '900', letterSpacing: 1.1 },
-  big: { fontSize: 40, fontWeight: '900', color: '#7B8CFF' },
-  small: { color: '#8994B8', fontSize: 12, lineHeight: 18 },
-  safety: { color: '#667194', fontSize: 11, lineHeight: 17, marginTop: 26 },
+  modeButtonSelected: { backgroundColor: '#272154', borderColor: '#857AFF' },
+  modeButtonText: { color: '#7580A4', fontWeight: '800' },
+  modeButtonTextSelected: { color: '#FFFFFF' },
+  sourceTag: { color: '#50E8FA', fontSize: 8, fontWeight: '900', letterSpacing: 1.1 },
+  big: { fontSize: 38, fontWeight: '900', color: '#8B7CFF' },
+  small: { color: '#7E89AE', fontSize: 12, lineHeight: 18 },
+  safety: { color: '#5E688C', fontSize: 10, lineHeight: 16, marginTop: 24 },
   button: {
-    backgroundColor: '#655CFF',
+    backgroundColor: '#6254F3',
     borderRadius: 18,
     padding: 17,
     alignItems: 'center',
-    marginTop: 19,
+    marginTop: 18,
     borderWidth: 1,
-    borderColor: '#8D86FF',
-    shadowColor: '#655CFF',
-    shadowOpacity: 0.55,
+    borderColor: '#9B93FF',
+    shadowColor: '#6F61FF',
+    shadowOpacity: 0.65,
     shadowRadius: 18,
-    elevation: 8,
+    elevation: 10,
   },
-  buttonText: { color: '#FFFFFF', fontWeight: '900', letterSpacing: 0.2 },
+  buttonText: { color: '#FFFFFF', fontWeight: '900', letterSpacing: 0.3 },
   secondaryButton: {
     borderWidth: 1,
-    borderColor: '#32E6FF',
-    backgroundColor: '#0B2030',
+    borderColor: '#25DDF3',
+    backgroundColor: '#071B29',
     borderRadius: 15,
     padding: 14,
     alignItems: 'center',
     marginTop: 17,
   },
-  secondaryButtonText: { color: '#32E6FF', fontWeight: '900' },
-  disabled: { opacity: 0.35 },
+  secondaryButtonText: { color: '#55E9FA', fontWeight: '900' },
+  disabled: { opacity: 0.34 },
   backButton: { alignItems: 'center', padding: 15, marginTop: 7 },
-  backText: { color: '#8E9BC2', fontWeight: '800' },
+  backText: { color: '#7C88AD', fontWeight: '800' },
   stepHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  progress: { color: '#9F97FF', fontWeight: '900', fontSize: 13 },
-  label: { fontSize: 13, fontWeight: '900', color: '#E8EBFF', marginTop: 23, marginBottom: 10 },
-  labelInline: { flex: 1, fontSize: 13, fontWeight: '900', color: '#E8EBFF' },
+  progress: {
+    color: '#B0A9FF',
+    fontWeight: '900',
+    fontSize: 10,
+    letterSpacing: 0.6,
+    borderWidth: 1,
+    borderColor: '#423A78',
+    borderRadius: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: '#171434',
+    overflow: 'hidden',
+  },
+  label: { fontSize: 12, fontWeight: '900', color: '#E8EBFF', marginTop: 23, marginBottom: 10, letterSpacing: 0.2 },
+  labelInline: { flex: 1, fontSize: 12, fontWeight: '900', color: '#E8EBFF' },
   moods: { flexDirection: 'row', gap: 7, marginBottom: 17 },
   mood: {
     flex: 1,
-    backgroundColor: '#10162B',
+    backgroundColor: '#0D1126',
     borderWidth: 1,
     borderColor: '#293354',
     borderRadius: 15,
     paddingVertical: 13,
     alignItems: 'center',
   },
-  selected: { backgroundColor: '#242058', borderColor: '#7B8CFF' },
+  selected: { backgroundColor: '#292259', borderColor: '#8B7CFF' },
   moodNumber: { fontWeight: '900', color: '#F1F3FF', fontSize: 16 },
-  moodLabel: { fontSize: 9, color: '#8994B8', marginTop: 4 },
+  moodLabel: { fontSize: 9, color: '#7D88AD', marginTop: 4 },
   input: {
     minHeight: 150,
-    backgroundColor: '#0D1326',
+    backgroundColor: '#080B19',
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#2C385F',
+    borderColor: '#293357',
     padding: 17,
     textAlignVertical: 'top',
     fontSize: 16,
@@ -755,83 +905,83 @@ const s = StyleSheet.create({
   },
   inputShort: {
     minHeight: 108,
-    backgroundColor: '#0D1326',
+    backgroundColor: '#080B19',
     borderRadius: 19,
     borderWidth: 1,
-    borderColor: '#2C385F',
+    borderColor: '#293357',
     padding: 17,
     textAlignVertical: 'top',
     fontSize: 15,
     color: '#F1F3FF',
   },
   lineInput: {
-    backgroundColor: '#0D1326',
+    backgroundColor: '#080B19',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#2C385F',
+    borderColor: '#293357',
     padding: 16,
     fontSize: 15,
     color: '#F1F3FF',
     marginTop: 12,
   },
   toggleRow: { flexDirection: 'row', gap: 8, alignItems: 'center', marginTop: 17 },
-  choiceText: { color: '#8994B8', fontWeight: '900' },
-  choiceTextSelected: { color: '#F1F3FF' },
+  choiceText: { color: '#7E89AE', fontWeight: '900' },
+  choiceTextSelected: { color: '#FFFFFF' },
   smallChoice: {
     borderWidth: 1,
     borderColor: '#2C385F',
     borderRadius: 13,
     paddingHorizontal: 14,
     paddingVertical: 10,
-    backgroundColor: '#10162B',
+    backgroundColor: '#0D1126',
   },
   breatheCard: {
-    backgroundColor: '#101D37',
-    borderRadius: 27,
+    backgroundColor: '#081827',
+    borderRadius: 28,
     padding: 26,
     marginTop: 23,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#276477',
-    shadowColor: '#32E6FF',
-    shadowOpacity: 0.3,
-    shadowRadius: 24,
-    elevation: 8,
+    borderColor: '#237189',
+    shadowColor: '#2CE7F8',
+    shadowOpacity: 0.42,
+    shadowRadius: 25,
+    elevation: 10,
   },
-  breatheWord: { fontWeight: '900', letterSpacing: 4, color: '#32E6FF' },
-  timer: { fontSize: 58, fontWeight: '900', color: '#F7F8FF', marginVertical: 13, letterSpacing: -2 },
-  humor: { fontSize: 12, lineHeight: 18, color: '#8994B8', fontStyle: 'italic', marginTop: 15 },
+  breatheWord: { fontWeight: '900', letterSpacing: 4, color: '#4AE8FA' },
+  timer: { fontSize: 60, fontWeight: '900', color: '#F7F8FF', marginVertical: 13, letterSpacing: -2.5 },
+  humor: { fontSize: 12, lineHeight: 18, color: '#7D88AD', fontStyle: 'italic', marginTop: 15 },
   choiceCard: {
-    backgroundColor: '#10162B',
+    backgroundColor: '#0D1024',
     borderWidth: 1,
-    borderColor: '#252F52',
+    borderColor: '#242A4D',
     borderRadius: 18,
     padding: 16,
     marginTop: 11,
   },
-  choiceSelected: { borderColor: '#7B8CFF', backgroundColor: '#242058' },
-  reflectionBox: { borderTopWidth: 1, borderTopColor: '#252F52', marginTop: 15, paddingTop: 15 },
-  detail: { fontSize: 14, lineHeight: 21, color: '#B8C0DB', marginTop: 7 },
+  choiceSelected: { borderColor: '#8B7CFF', backgroundColor: '#282255' },
+  reflectionBox: { borderTopWidth: 1, borderTopColor: '#242A4D', marginTop: 15, paddingTop: 15 },
+  detail: { fontSize: 14, lineHeight: 21, color: '#ADB6D3', marginTop: 7 },
   bold: { fontWeight: '900', color: '#F1F3FF' },
   entryHeader: { flexDirection: 'row', justifyContent: 'space-between', gap: 8 },
   statsRow: { flexDirection: 'row', gap: 13, marginTop: 17 },
   statCard: {
     flex: 1,
-    backgroundColor: '#10162B',
+    backgroundColor: '#0D1024',
     borderWidth: 1,
-    borderColor: '#252F52',
+    borderColor: '#242A4D',
     borderRadius: 21,
     padding: 17,
   },
   dangerButton: {
     borderWidth: 1,
-    borderColor: '#6D3045',
-    backgroundColor: '#25101A',
+    borderColor: '#74364B',
+    backgroundColor: '#26101A',
     borderRadius: 16,
     padding: 15,
     alignItems: 'center',
     marginTop: 18,
   },
-  dangerText: { color: '#FF8BA7', fontWeight: '900' },
-  price: { fontSize: 20, fontWeight: '900', color: '#32E6FF', marginTop: 14 },
+  dangerText: { color: '#FF91AD', fontWeight: '900' },
+  price: { fontSize: 20, fontWeight: '900', color: '#58E9FA', marginTop: 14 },
 });
