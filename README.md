@@ -92,7 +92,9 @@ npx eas-cli@latest build --profile development --platform android
 ```bash
 cd agent
 npm install
-export GEMINI_API_KEY="YOUR_GEMINI_API_KEY"
+gcloud auth application-default login
+export GOOGLE_CLOUD_PROJECT="YOUR_GOOGLE_CLOUD_PROJECT"
+export GOOGLE_CLOUD_LOCATION="global"
 npm start
 ```
 
@@ -119,7 +121,7 @@ cd agent
 bash deploy.sh YOUR_GOOGLE_CLOUD_PROJECT_ID us-central1 me-u-agent
 ```
 
-The deployment expects a Secret Manager secret named `gemini-api-key`. When Cloud Run returns a service URL, append `/reflect` and place it in the mobile `.env` file:
+The deployment creates or reuses a dedicated Cloud Run runtime service account and grants it Vertex AI access. Gemini is called with application-default credentials, so no Gemini API key is stored or injected. When Cloud Run returns a service URL, append `/reflect` and place it in the mobile `.env` file:
 
 ```bash
 EXPO_PUBLIC_REFLECTION_API_URL=https://YOUR_CLOUD_RUN_SERVICE_URL/reflect
@@ -131,7 +133,7 @@ Restart/rebuild the mobile app after changing Expo public environment variables.
 
 Create a Firestore database in the same Google Cloud project. When available, the agent stores short derived pattern summaries under a random device memory ID. If Firestore is unavailable, the agent still returns Gemini reflections without cross-session cloud memory.
 
-For production, this needs explicit cloud-memory consent, authentication, rate limiting, retention/deletion controls, and a delete-memory endpoint. The hackathon implementation is intentionally narrow.
+Cloud AI is opt-in in the mobile UI. The hackathon service also includes an in-memory request limit and a delete-memory endpoint. A production release still needs authentication, durable distributed abuse controls, and a documented retention policy.
 
 ## RevenueCat / Me+U Plus
 

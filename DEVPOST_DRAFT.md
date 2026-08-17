@@ -47,9 +47,10 @@ The cloud agent:
 
 - **Gemini 3.5 Flash** (`gemini-3.5-flash`) for the cloud reflection step.
 - **Google Gen AI SDK** (`@google/genai`) as the agent framework.
+- **Vertex AI** as the authenticated Gemini runtime.
 - **Google Cloud Run** to host the Me+U Reflection Agent.
 - **Cloud Firestore** for optional pseudonymous cross-session pattern memory.
-- **Secret Manager** for server-side Gemini credentials in the deployment path.
+- **Cloud Run service identity** for keyless server-to-Vertex authentication.
 
 ## Other technologies
 
@@ -83,7 +84,7 @@ I also learned that memory is a product and privacy decision, not just a technic
 
 - deploy and verify the Cloud Run backend with Gemini 3.5 Flash;
 - enable Firestore memory in the contest Google Cloud project;
-- add explicit in-app cloud-memory consent and a delete-memory action;
+- redeploy and verify the keyless Vertex AI Cloud Run revision;
 - add authenticated user-controlled sync;
 - expand long-term pattern analysis without turning tentative patterns into diagnoses;
 - add voice-first resets and accessibility improvements;

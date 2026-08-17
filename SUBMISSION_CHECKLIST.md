@@ -20,7 +20,7 @@
 - [x] Add a deployable Google Cloud Run service.
 - [x] Add optional Cloud Firestore pseudonymous pattern memory.
 - [x] Keep Gemini credentials server-side.
-- [x] Add Cloud Run / Secret Manager deployment instructions.
+- [x] Add keyless Vertex AI / Cloud Run deployment instructions.
 - [x] Add a reproducible architecture diagram.
 - [x] Add local and cloud spin-up instructions for judges.
 
@@ -28,9 +28,9 @@
 
 - [ ] Confirm the Google Cloud billing account used by the project is active and valid.
 - [ ] Request the hackathon's $150 Google Cloud credits before the credit-request form closes on August 28, 2026 at 12:00 PM PT.
-- [ ] Create or update Secret Manager secret `gemini-api-key`.
+- [x] Use a dedicated Cloud Run runtime service account instead of a Gemini API key.
 - [ ] Create Firestore in the contest Google Cloud project if cross-session memory will be demonstrated.
-- [ ] Deploy `agent/` to Cloud Run using `bash deploy.sh YOUR_PROJECT_ID us-central1 me-u-agent`.
+- [ ] Redeploy `agent/` to Cloud Run using `bash deploy.sh bobsome1 us-central1 me-u-agent`.
 - [ ] Verify `GET /health` on the deployed Cloud Run service.
 - [ ] Verify `POST /reflect` returns a Gemini-backed reflection.
 - [ ] Put the deployed `/reflect` URL in `EXPO_PUBLIC_REFLECTION_API_URL`.
@@ -47,6 +47,7 @@
 - [ ] If Firestore memory is enabled, complete multiple resets and verify recent derived pattern memory is used.
 - [ ] Verify explicit harm-language input bypasses normal reflection.
 - [ ] Verify no Gemini API key or service credential is committed to the repository.
+- [x] Pass local mobile typecheck and agent health/validation/safety smoke tests.
 
 ## Demo and submission
 

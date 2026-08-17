@@ -13,7 +13,11 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import type { Entry, Mood, ResponseChoice } from './src/types';
 import { loadEntries, saveEntries } from './src/storage';
-import { deleteCloudMemory, getReflection } from './src/services/reflection';
+import {
+  deleteCloudMemory,
+  getReflection,
+  isCloudReflectionConfigured,
+} from './src/services/reflection';
 import { configureRevenueCat, purchasePro, type PremiumState } from './src/services/revenuecat';
 
 type Screen = 'today' | 'reset' | 'journal' | 'insights' | 'plus';
@@ -78,7 +82,14 @@ export default function App() {
   const [breathSeconds, setBreathSeconds] = useState(300);
 
   useEffect(() => {
-    loadEntries().then(setEntries);
+    loadEntries().then(savedEntries => {
+      setEntries(savedEntries);
+      const latest = savedEntries[0];
+      if (latest?.reflection) {
+        setLastReflection(latest.reflection);
+        setLastReflectionSource(latest.reflectionSource ?? 'local');
+      }
+    });
   }, []);
 
   useEffect(() => {
@@ -130,6 +141,25 @@ export default function App() {
     setScreen('reset');
   }
 
+  function enableCloudAI() {
+    if (!isCloudReflectionConfigured()) {
+      Alert.alert(
+        'Cloud AI is unavailable in this build',
+        'This build has no Me+U reflection service configured. Local-only reflection is still fully available.',
+      );
+      return;
+    }
+
+    Alert.alert(
+      'Use Cloud AI for completed resets?',
+      'Me+U will send the completed reset and a random device ID to its Google Cloud service. Your full journal stays on this device; only a short derived pattern may be remembered in Firestore when cloud memory is available.',
+      [
+        { text: 'Keep local only', style: 'cancel' },
+        { text: 'Use Cloud AI', onPress: () => setCloudEnabled(true) },
+      ],
+    );
+  }
+
   function updateGratitude(index: number, value: string) {
     setGratitudes(current => current.map((item, itemIndex) => (itemIndex === index ? value : item)));
   }
@@ -155,6 +185,7 @@ export default function App() {
         mood,
         text: text.trim(),
         reflection: result.reflection,
+        reflectionSource: result.source,
         involvesPerson,
         myPart: myPart.trim(),
         theirSide: theirSide.trim(),
@@ -188,7 +219,13 @@ export default function App() {
             setEntries([]);
             setLastReflection('');
             await saveEntries([]);
-            await deleteCloudMemory();
+            const cloudDeleted = await deleteCloudMemory();
+            if (!cloudDeleted) {
+              Alert.alert(
+                'Local journal deleted',
+                'Me+U removed the journal from this device, but could not confirm cloud-memory deletion. Try again when the cloud service is available.',
+              );
+            }
           },
         },
       ],
@@ -228,7 +265,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <SafeAreaView style={s.safe} edges={['top', 'left', 'right']}>
-      <StatusBar style="light" backgroundColor="#050611" />
+      <StatusBar style="light" />
       <View pointerEvents="none" style={s.ambient}>
         <View style={s.glowViolet} />
         <View style={s.glowCyan} />
@@ -236,7 +273,7 @@ export default function App() {
       <View style={s.header}>
         <View>
           <Text style={s.brand}>Me<Text style={s.brandPlus}>+</Text>U</Text>
-          <Text style={s.sub}>REFLECTION INTELLIGENCE · BUILD 04</Text>
+          <Text style={s.sub}>REFLECTION INTELLIGENCE · BUILD 05</Text>
         </View>
         <Text style={s.pill}>{cloudEnabled ? 'CLOUD AI' : 'LOCAL ONLY'}</Text>
       </View>
@@ -291,7 +328,7 @@ export default function App() {
                   accessibilityRole="button"
                   accessibilityState={{ selected: cloudEnabled }}
                   style={[s.modeButton, cloudEnabled && s.modeButtonSelected]}
-                  onPress={() => setCloudEnabled(true)}
+                  onPress={enableCloudAI}
                 >
                   <Text style={[s.modeButtonText, cloudEnabled && s.modeButtonTextSelected]}>Cloud AI</Text>
                 </Pressable>

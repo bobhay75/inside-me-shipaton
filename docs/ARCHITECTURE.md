@@ -31,7 +31,7 @@ flowchart LR
 
 ## Trust boundaries
 
-- Gemini API credentials remain server-side in Cloud Run/Secret Manager.
+- Cloud Run calls Vertex AI with its dedicated runtime service identity; no Gemini API key ships in the app or service configuration.
 - Expo public environment variables contain only the public Cloud Run endpoint and optional RevenueCat public SDK key.
 - Firestore memory uses a random device ID rather than a name or email.
-- The hackathon service is deliberately minimal; production requires authentication, rate limiting, retention/deletion controls, explicit cloud-memory consent, and abuse monitoring.
+- The hackathon service includes explicit cloud consent, a request limit, and user-triggered cloud-memory deletion. Production still requires authentication, distributed abuse controls, a documented retention policy, and monitoring.

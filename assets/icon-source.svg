@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="72%">
+      <stop offset="0%" stop-color="#171842"/>
+      <stop offset="58%" stop-color="#090B20"/>
+      <stop offset="100%" stop-color="#050611"/>
+    </radialGradient>
+    <linearGradient id="ring" x1="160" y1="160" x2="864" y2="864" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#6EF2FF"/>
+      <stop offset="48%" stop-color="#786CFF"/>
+      <stop offset="100%" stop-color="#B96EFF"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="24" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <circle cx="512" cy="486" r="305" fill="#0A102B" stroke="#26345E" stroke-width="22"/>
+  <circle cx="512" cy="486" r="242" fill="#111033" stroke="url(#ring)" stroke-width="28" filter="url(#glow)"/>
+  <circle cx="512" cy="486" r="174" fill="#6155ED" stroke="#AAA4FF" stroke-width="8"/>
+  <text x="512" y="548" text-anchor="middle" fill="#FFFFFF" font-family="DejaVu Sans, Arial, sans-serif" font-size="174" font-weight="900" letter-spacing="-14">M+U</text>
+  <text x="512" y="865" text-anchor="middle" fill="#70ECFF" font-family="DejaVu Sans, Arial, sans-serif" font-size="46" font-weight="700" letter-spacing="13">REFLECT</text>
+</svg>

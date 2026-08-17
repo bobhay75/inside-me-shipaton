@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="ring" x1="210" y1="210" x2="814" y2="814" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#6EF2FF"/>
+      <stop offset="50%" stop-color="#786CFF"/>
+      <stop offset="100%" stop-color="#B96EFF"/>
+    </linearGradient>
+  </defs>
+  <circle cx="512" cy="512" r="250" fill="#111033" stroke="url(#ring)" stroke-width="30"/>
+  <circle cx="512" cy="512" r="176" fill="#6155ED" stroke="#AAA4FF" stroke-width="8"/>
+  <text x="512" y="574" text-anchor="middle" fill="#FFFFFF" font-family="DejaVu Sans, Arial, sans-serif" font-size="174" font-weight="900" letter-spacing="-14">M+U</text>
+</svg>

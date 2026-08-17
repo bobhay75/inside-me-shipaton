@@ -8,6 +8,7 @@ export type Entry = {
   mood: Mood;
   text: string;
   reflection: string;
+  reflectionSource?: 'local' | 'cloud';
   involvesPerson?: boolean;
   myPart?: string;
   theirSide?: string;

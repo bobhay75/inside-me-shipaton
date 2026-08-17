@@ -1,5 +1,5 @@
 import type { Mood, ResponseChoice } from '../types';
-import { getMemoryId } from '../storage';
+import { getExistingMemoryId, getMemoryId } from '../storage';
 
 export type ReflectionInput = {
   text: string;
@@ -19,6 +19,26 @@ const choiceLabel: Record<ResponseChoice, string> = {
   boundary: 'set a clear boundary',
   'let-go': 'let this go for now',
 };
+
+const CLOUD_TIMEOUT_MS = 15_000;
+
+function reflectionEndpoint() {
+  return process.env.EXPO_PUBLIC_REFLECTION_API_URL?.trim() ?? '';
+}
+
+export function isCloudReflectionConfigured() {
+  return Boolean(reflectionEndpoint());
+}
+
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs = CLOUD_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
 
 function hasUrgentRisk(text: string) {
   return /\b(kill myself|suicide|suicidal|hurt myself|hurt someone|kill him|kill her|kill them)\b/i.test(text);
@@ -72,14 +92,12 @@ export async function getReflection(
   input: ReflectionInput,
   useCloud = false,
 ): Promise<ReflectionResult> {
-  const endpoint =
-    process.env.EXPO_PUBLIC_REFLECTION_API_URL ||
-    'https://me-u-agent-809470834596.us-central1.run.app/reflect';
+  const endpoint = reflectionEndpoint();
 
   if (useCloud && endpoint) {
     try {
       const memoryId = input.memoryId ?? (await getMemoryId());
-      const response = await fetch(endpoint, {
+      const response = await fetchWithTimeout(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...input, memoryId }),
@@ -100,14 +118,15 @@ export async function getReflection(
 
 
 export async function deleteCloudMemory(): Promise<boolean> {
-  const endpoint =
-    process.env.EXPO_PUBLIC_REFLECTION_API_URL ||
-    'https://me-u-agent-809470834596.us-central1.run.app/reflect';
-  const memoryId = await getMemoryId();
+  const endpoint = reflectionEndpoint();
+  if (!endpoint) return true;
+
+  const memoryId = await getExistingMemoryId();
+  if (!memoryId) return true;
   const memoryEndpoint = endpoint.replace(/\/reflect\/?$/, `/memory/${encodeURIComponent(memoryId)}`);
 
   try {
-    const response = await fetch(memoryEndpoint, { method: 'DELETE' });
+    const response = await fetchWithTimeout(memoryEndpoint, { method: 'DELETE' }, 10_000);
     return response.ok || response.status === 404;
   } catch {
     return false;
