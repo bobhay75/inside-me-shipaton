@@ -48,10 +48,13 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon
 
+      - name: Name next-gen APK
+        run: mv android/app/build/outputs/apk/release/app-release.apk android/app/build/outputs/apk/release/MeU-NextGen-v0.4.0.apk
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Me-U-Android-APK
-          path: android/app/build/outputs/apk/release/*.apk
+          name: MeU-NextGen-v0.4.0
+          path: android/app/build/outputs/apk/release/MeU-NextGen-v0.4.0.apk
           if-no-files-found: error
           retention-days: 30
