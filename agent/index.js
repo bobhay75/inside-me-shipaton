@@ -5,8 +5,11 @@ import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 
 const PORT = Number(process.env.PORT || 8080);
 const MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
-const apiKey = process.env.GEMINI_API_KEY;
-const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
+const ai = new GoogleGenAI({
+  vertexai: true,
+  project: process.env.GOOGLE_CLOUD_PROJECT || 'bobsome1',
+  location: process.env.GOOGLE_CLOUD_LOCATION || 'global',
+});
 
 let db = null;
 try {
@@ -101,10 +104,6 @@ app.get('/health', (_req, res) => {
 });
 
 app.post('/reflect', async (req, res) => {
-  if (!ai) {
-    return res.status(503).json({ error: 'GEMINI_API_KEY is not configured.' });
-  }
-
   const body = req.body || {};
   const entry = {
     text: clean(body.text, 6000),
