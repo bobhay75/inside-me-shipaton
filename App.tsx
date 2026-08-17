@@ -13,7 +13,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import type { Entry, Mood, ResponseChoice } from './src/types';
 import { loadEntries, saveEntries } from './src/storage';
-import { getReflection } from './src/services/reflection';
+import { deleteCloudMemory, getReflection } from './src/services/reflection';
 import { configureRevenueCat, purchasePro, type PremiumState } from './src/services/revenuecat';
 
 type Screen = 'today' | 'reset' | 'journal' | 'insights' | 'plus';
@@ -170,7 +170,7 @@ export default function App() {
   function clearJournal() {
     Alert.alert(
       'Delete all local journal data?',
-      'This permanently removes every saved reset from this device.',
+      'This permanently removes every saved reset from this device and requests deletion of pseudonymous cloud pattern memory.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -180,6 +180,7 @@ export default function App() {
             setEntries([]);
             setLastReflection('');
             await saveEntries([]);
+            await deleteCloudMemory();
           },
         },
       ],
