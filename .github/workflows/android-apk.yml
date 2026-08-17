@@ -9,7 +9,20 @@ on:
       - 'app.json'
       - 'eas.json'
       - 'package.json'
+      - 'package-lock.json'
       - 'src/**'
+      - 'assets/**'
+      - '.github/workflows/android-apk.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'App.tsx'
+      - 'app.json'
+      - 'eas.json'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'src/**'
+      - 'assets/**'
       - '.github/workflows/android-apk.yml'
 
 permissions:
