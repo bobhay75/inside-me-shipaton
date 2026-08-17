@@ -1,4 +1,4 @@
-import type { Mood, ResponseChoice } from '../types';
+import type { Mood, ResetMode, ResponseChoice } from '../types';
 import { getExistingMemoryId, getMemoryId } from '../storage';
 
 export type ReflectionInput = {
@@ -11,6 +11,25 @@ export type ReflectionInput = {
   nextMove: string;
   responseChoice: ResponseChoice;
   memoryId?: string;
+};
+
+export type MirrorInput = {
+  text: string;
+  intent: string;
+  mood: Mood;
+  mode: ResetMode;
+};
+
+export type MirrorResult = {
+  me: string;
+  meX2: string;
+  meBetter: string;
+  impactScore: number;
+  clarityScore: number;
+  agencyScore: number;
+  heatWords: string[];
+  controlCue: string;
+  source: 'local' | 'cloud';
 };
 
 const choiceLabel: Record<ResponseChoice, string> = {
@@ -42,6 +61,74 @@ async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs = CLOU
 
 function hasUrgentRisk(text: string) {
   return /\b(kill myself|suicide|suicidal|hurt myself|hurt someone|kill him|kill her|kill them)\b/i.test(text);
+}
+
+const heatTerms = [
+  'always',
+  'never',
+  'stupid',
+  'idiot',
+  'liar',
+  'hate',
+  'ridiculous',
+  'pathetic',
+  'fault',
+  'whatever',
+  'shut up',
+];
+
+function cleanSentence(value: string) {
+  const cleaned = value
+    .replace(/\b(always|never)\b/gi, 'often')
+    .replace(/\b(stupid|idiot|pathetic)\b/gi, 'hurtful')
+    .replace(/!{2,}/g, '!')
+    .trim();
+  if (!cleaned) return '';
+  return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+}
+
+export function localMirrorPreview(input: MirrorInput): MirrorResult {
+  const combined = `${input.text} ${input.intent}`;
+  const lowered = combined.toLowerCase();
+  const heatWords = heatTerms.filter(term => lowered.includes(term));
+  const punctuationHeat = (combined.match(/!/g) || []).length * 4 + (combined.match(/\b[A-Z]{3,}\b/g) || []).length * 5;
+  const moodHeat = (6 - input.mood) * 8;
+  const impactScore = Math.max(18, Math.min(94, 24 + moodHeat + heatWords.length * 9 + punctuationHeat));
+  const clarityScore = Math.max(28, Math.min(92, input.intent.trim() ? 78 - heatWords.length * 4 : 48 - heatWords.length * 3));
+  const agencyWords = /\b(i will|i can|i need|my boundary|i choose|i am going to)\b/i.test(combined);
+  const blameWords = /\b(you made me|your fault|you need to|make you)\b/i.test(combined);
+  const agencyScore = Math.max(24, Math.min(94, 58 + (agencyWords ? 22 : 0) - (blameWords ? 20 : 0)));
+
+  const me = input.intent.trim()
+    ? `You want them to understand: ${cleanSentence(input.intent)}`
+    : `You want this moment to be taken seriously, not dismissed.`;
+
+  const meX2 = impactScore >= 70
+    ? 'Your truth may be getting buried under the heat. The other person may hear attack, pressure, or a verdict—and defend themselves before they hear your point.'
+    : impactScore >= 45
+      ? 'Your point is visible, but some of the emotion may land louder than the need underneath it.'
+      : 'Your message is fairly controlled. It is likely to land as direct rather than explosive, especially if your delivery matches the words.';
+
+  const cleaned = cleanSentence(input.text);
+  const meBetter = input.intent.trim()
+    ? `I want to say this clearly without turning it into a fight: ${cleanSentence(input.intent)}. I can own how I handle this, and I want us to decide what happens next.`
+    : cleaned
+      ? `I am worked up, so I want to say this carefully: ${cleaned} Can we slow this down and talk about what happens next?`
+      : 'I want to be honest without making this worse. Here is what happened, here is what I need, and here is the part I can own.';
+
+  return {
+    me,
+    meX2,
+    meBetter,
+    impactScore,
+    clarityScore,
+    agencyScore,
+    heatWords,
+    controlCue: blameWords
+      ? 'Move one sentence from “you need to” toward “I will” or “I need.”'
+      : 'Keep the truth. Remove the verdict. Name the next action you control.',
+    source: 'local',
+  };
 }
 
 function localReflection(input: ReflectionInput) {
@@ -114,6 +201,37 @@ export async function getReflection(
   }
 
   return { reflection: localReflection(input), source: 'local' };
+}
+
+export async function getMirrorPreview(input: MirrorInput, useCloud = false): Promise<MirrorResult> {
+  const fallback = localMirrorPreview(input);
+  const endpoint = reflectionEndpoint();
+  if (!useCloud || !endpoint) return fallback;
+
+  const mirrorEndpoint = endpoint.replace(/\/reflect\/?$/, '/mirror');
+  try {
+    const response = await fetchWithTimeout(mirrorEndpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    }, 12_000);
+    if (!response.ok) return fallback;
+    const data = (await response.json()) as Partial<MirrorResult>;
+    if (!data.me?.trim() || !data.meX2?.trim() || !data.meBetter?.trim()) return fallback;
+    return {
+      me: data.me.trim(),
+      meX2: data.meX2.trim(),
+      meBetter: data.meBetter.trim(),
+      impactScore: Math.max(0, Math.min(100, Number(data.impactScore ?? fallback.impactScore))),
+      clarityScore: Math.max(0, Math.min(100, Number(data.clarityScore ?? fallback.clarityScore))),
+      agencyScore: Math.max(0, Math.min(100, Number(data.agencyScore ?? fallback.agencyScore))),
+      heatWords: Array.isArray(data.heatWords) ? data.heatWords.slice(0, 6).map(String) : fallback.heatWords,
+      controlCue: data.controlCue?.trim() || fallback.controlCue,
+      source: 'cloud',
+    };
+  } catch {
+    return fallback;
+  }
 }
 
 

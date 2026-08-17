@@ -61,7 +61,7 @@ function rateLimit(req, res, next) {
   next();
 }
 
-app.use(['/reflect', '/memory'], rateLimit);
+app.use(['/reflect', '/mirror', '/memory'], rateLimit);
 
 function clean(value, max = 4000) {
   return typeof value === 'string' ? value.trim().slice(0, max) : '';
@@ -154,6 +154,56 @@ app.delete('/memory/:memoryId', async (req, res) => {
     memoryState = 'unavailable';
     console.error('Memory deletion failed:', error);
     return res.status(503).json({ error: 'cloud memory could not be deleted' });
+  }
+});
+
+app.post('/mirror', async (req, res) => {
+  const body = req.body || {};
+  const draft = clean(body.text, 6000);
+  const intent = clean(body.intent, 2000);
+  const mode = clean(body.mode, 30) || 'conflict';
+  const suppliedMood = Number(body.mood);
+  const mood = Number.isFinite(suppliedMood) ? Math.min(5, Math.max(1, suppliedMood)) : 3;
+
+  if (!draft) return res.status(400).json({ error: 'text is required' });
+  if (hasUrgentRisk(`${draft} ${intent}`)) {
+    return res.json({
+      me: 'You need immediate support, not message coaching.',
+      meX2: 'This message signals an immediate risk of harm and should not be handled alone.',
+      meBetter: 'Pause and contact local emergency help or bring a trusted person physically near you now.',
+      impactScore: 100,
+      clarityScore: 100,
+      agencyScore: 30,
+      heatWords: [],
+      controlCue: 'Get another person physically involved before taking any other action.',
+      model: 'safety-rule',
+    });
+  }
+
+  const systemInstruction = `You are the Me+U Me×2 emotional mirror. Analyze a draft before it is sent or spoken. Preserve the user's truth and agency. Never diagnose, shame, decide who is right, or claim to know another person's mind. Describe only one plausible way the message may land. Create a more effective version that keeps the truth but reduces unnecessary heat. Return ONLY valid JSON with exactly these keys: me, meX2, meBetter, impactScore, clarityScore, agencyScore, heatWords, controlCue. me: one sentence stating what the user appears to mean. meX2: 1-2 sentences describing how it may be received, explicitly using tentative language. meBetter: a natural first-person rewrite under 80 words. Scores are integers 0-100 where impactScore means emotional heat/risk, clarityScore means clarity, and agencyScore means focus on actions the user controls. heatWords is an array of at most 6 exact short phrases from the draft. controlCue is one concrete coaching sentence.`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: MODEL,
+      contents: JSON.stringify({ draft, intent, mood, mode }),
+      config: { systemInstruction, responseMimeType: 'application/json' },
+    });
+    const parsed = extractJson(response.text?.trim() || '');
+    if (!parsed?.me || !parsed?.meX2 || !parsed?.meBetter) throw new Error('Gemini returned an incomplete mirror.');
+    return res.json({
+      me: clean(parsed.me, 1000),
+      meX2: clean(parsed.meX2, 1500),
+      meBetter: clean(parsed.meBetter, 2000),
+      impactScore: Math.max(0, Math.min(100, Number(parsed.impactScore || 50))),
+      clarityScore: Math.max(0, Math.min(100, Number(parsed.clarityScore || 50))),
+      agencyScore: Math.max(0, Math.min(100, Number(parsed.agencyScore || 50))),
+      heatWords: Array.isArray(parsed.heatWords) ? parsed.heatWords.slice(0, 6).map(item => clean(item, 80)) : [],
+      controlCue: clean(parsed.controlCue, 1000),
+      model: MODEL,
+    });
+  } catch (error) {
+    console.error('Gemini mirror failed:', error);
+    return res.status(502).json({ error: 'The cloud mirror could not analyze this draft.' });
   }
 });
 

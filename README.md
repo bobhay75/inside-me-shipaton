@@ -2,7 +2,9 @@
 
 Me+U is a local-first emotional reset and communication app that helps a person move from reaction to deliberate action:
 
-**vent → pause → sort control → reframe → choose the next move → reflect**
+**write it raw → see what you mean → see one way it may land → lower the heat → choose the next move**
+
+The v0.6 signature experience is **Me×2**, an emotional mirror for the moment before a message, after a conflict, during a hard decision, or inside a spiral. It separates intention from impact, scores heat/clarity/agency, helps regulate the body, and simulates four healthier response paths without pretending to read another person's mind.
 
 The mobile app is built with Expo/React Native. Its optional cloud agent uses **Gemini 3.5 Flash**, the **Google Gen AI SDK**, **Cloud Run**, and optional **Cloud Firestore** pseudonymous memory.
 
@@ -25,7 +27,7 @@ That means the user can own their reaction, tone, assumptions, choices, and boun
 3. **Sort:** identify what is actually yours to own or change and, when another person is involved, consider a possible perspective without declaring it fact.
 4. **Reframe:** name three good or grateful things so one bad moment does not become the entire story.
 5. **Choose:** select Pause, Talk, Boundary, or Let go, then write one concrete next move.
-6. **Reflect:** save locally and receive either the Gemini-backed Me+U reflection or an offline fallback.
+6. **Act:** edit the healthier version, choose pause/talk/boundary/let go, and save a private reset.
 7. **Review:** use Journal and Insights to notice patterns across resets.
 
 ## Agentic Google stack
@@ -49,10 +51,10 @@ src/
   storage.ts                # local journal + pseudonymous memory ID
   types.ts                  # reset/journal data model
   services/
-    reflection.ts           # cloud-agent call + offline fallback
+    reflection.ts           # Me×2 mirror + reflection cloud/on-device parity
     revenuecat.ts           # optional Plus entitlement
 agent/
-  index.js                  # Gemini 3.5 reflection agent
+  index.js                  # Gemini mirror and reflection agent
   package.json              # Google Gen AI SDK + Cloud Run dependencies
   Dockerfile                # deployable container
   deploy.sh                 # source deployment helper
@@ -110,7 +112,7 @@ Then set the mobile app to the local or deployed reflection endpoint:
 EXPO_PUBLIC_REFLECTION_API_URL=http://YOUR_REACHABLE_HOST:8080/reflect
 ```
 
-The app remains usable when that variable is blank; it falls back to a local reflection engine.
+The app remains usable when that variable is blank; it falls back to local mirror and reflection engines. The same service also exposes `/mirror`.
 
 ## Deploy to Google Cloud Run
 
@@ -137,7 +139,7 @@ Cloud AI is opt-in in the mobile UI. The hackathon service also includes an in-m
 
 ## RevenueCat / Me+U Plus
 
-RevenueCat remains integrated through the `pro` entitlement. The free tier contains the complete useful reset loop. Plus currently unlocks a real journal export action, with deeper pattern summaries and custom reflection paths reserved for later expansion.
+RevenueCat remains integrated through the `pro` entitlement. The free tier contains the complete useful Me×2 reset loop. Plus is positioned around deeper pattern maps, custom relationship paths, voice rehearsal, encrypted exports, and weekly intelligence briefs.
 
 Configure:
 
