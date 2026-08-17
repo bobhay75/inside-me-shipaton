@@ -1,8 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  Platform,
+  Alert,
   Pressable,
-  SafeAreaView,
   ScrollView,
   Share,
   StyleSheet,
@@ -10,6 +9,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import type { Entry, Mood, ResponseChoice } from './src/types';
 import { loadEntries, saveEntries } from './src/storage';
@@ -53,6 +53,8 @@ export default function App() {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [premium, setPremium] = useState<PremiumState>({ configured: false, isPro: false });
   const [lastReflection, setLastReflection] = useState('');
+  const [lastReflectionSource, setLastReflectionSource] = useState<'local' | 'cloud'>('local');
+  const [cloudEnabled, setCloudEnabled] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const [step, setStep] = useState<ResetStep>(0);
@@ -137,7 +139,7 @@ export default function App() {
         gratitudes,
         nextMove,
         responseChoice,
-      });
+      }, cloudEnabled);
 
       const nextEntry: Entry = {
         id: String(Date.now()),
@@ -157,11 +159,31 @@ export default function App() {
       setEntries(next);
       await saveEntries(next);
       setLastReflection(result.reflection);
+      setLastReflectionSource(result.source);
       resetForm();
       setScreen('today');
     } finally {
       setBusy(false);
     }
+  }
+
+  function clearJournal() {
+    Alert.alert(
+      'Delete all local journal data?',
+      'This permanently removes every saved reset from this device.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            setEntries([]);
+            setLastReflection('');
+            await saveEntries([]);
+          },
+        },
+      ],
+    );
   }
 
   async function activatePlus() {
@@ -195,14 +217,15 @@ export default function App() {
   const progress = `${step + 1}/5`;
 
   return (
-    <SafeAreaView style={s.safe}>
+    <SafeAreaProvider>
+      <SafeAreaView style={s.safe} edges={['top', 'left', 'right']}>
       <StatusBar style="light" />
       <View style={s.header}>
         <View>
           <Text style={s.brand}>Me+U</Text>
           <Text style={s.sub}>You for you. Me for me.</Text>
         </View>
-        <Text style={s.pill}>PRIVATE</Text>
+        <Text style={s.pill}>{cloudEnabled ? 'CLOUD AI' : 'LOCAL ONLY'}</Text>
       </View>
 
       <View style={s.nav}>
@@ -219,8 +242,40 @@ export default function App() {
             <Text style={s.kicker}>CHECK YOURSELF BEFORE THE MOMENT CHOOSES FOR YOU</Text>
             <Text style={s.title}>Feel it. Sort it. Choose what happens next.</Text>
             <Text style={s.body}>
-              Me+U gives you a private place to vent first, slow the reaction down, separate what is yours from what belongs to someone else, and choose a healthier next move.
+              Me+U gives you a place to vent first, slow the reaction down, separate what is yours from what belongs to someone else, and choose a healthier next move.
             </Text>
+
+            <View style={s.modeCard}>
+              <View style={s.modeHeader}>
+                <View style={s.modeCopy}>
+                  <Text style={s.cardTitle}>Reflection mode</Text>
+                  <Text style={s.small}>
+                    {cloudEnabled
+                      ? 'Cloud AI sends each completed reset to ME+U’s Google Cloud service for a Gemini reflection.'
+                      : 'Local-only keeps reflection processing and your journal on this device.'}
+                  </Text>
+                </View>
+                <Text style={s.modeStatus}>{cloudEnabled ? 'ONLINE' : 'ON DEVICE'}</Text>
+              </View>
+              <View style={s.modeButtons}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: !cloudEnabled }}
+                  style={[s.modeButton, !cloudEnabled && s.modeButtonSelected]}
+                  onPress={() => setCloudEnabled(false)}
+                >
+                  <Text style={[s.modeButtonText, !cloudEnabled && s.modeButtonTextSelected]}>Local only</Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: cloudEnabled }}
+                  style={[s.modeButton, cloudEnabled && s.modeButtonSelected]}
+                  onPress={() => setCloudEnabled(true)}
+                >
+                  <Text style={[s.modeButtonText, cloudEnabled && s.modeButtonTextSelected]}>Cloud AI</Text>
+                </Pressable>
+              </View>
+            </View>
 
             <View style={s.heroCard}>
               <Text style={s.quote}>“I can work on me. You can work on you.”</Text>
@@ -233,7 +288,10 @@ export default function App() {
 
             {!!lastReflection && (
               <View style={s.card}>
-                <Text style={s.cardTitle}>Your last reflection</Text>
+                <View style={s.entryHeader}>
+                  <Text style={s.cardTitle}>Your last reflection</Text>
+                  <Text style={s.sourceTag}>{lastReflectionSource === 'cloud' ? 'CLOUD' : 'LOCAL'}</Text>
+                </View>
                 <Text style={s.body}>{lastReflection}</Text>
               </View>
             )}
@@ -290,10 +348,10 @@ export default function App() {
                 <View style={s.toggleRow}>
                   <Text style={s.labelInline}>Does this involve another person?</Text>
                   <Pressable style={[s.smallChoice, involvesPerson && s.selected]} onPress={() => setInvolvesPerson(true)}>
-                    <Text>Yes</Text>
+                    <Text style={[s.choiceText, involvesPerson && s.choiceTextSelected]}>Yes</Text>
                   </Pressable>
                   <Pressable style={[s.smallChoice, !involvesPerson && s.selected]} onPress={() => setInvolvesPerson(false)}>
-                    <Text>No</Text>
+                    <Text style={[s.choiceText, !involvesPerson && s.choiceTextSelected]}>No</Text>
                   </Pressable>
                 </View>
                 <Pressable
@@ -448,6 +506,11 @@ export default function App() {
                 </View>
               </View>
             ))}
+            {!!entries.length && (
+              <Pressable style={s.dangerButton} onPress={clearJournal}>
+                <Text style={s.dangerText}>Delete all local journal data</Text>
+              </Pressable>
+            )}
           </>
         )}
 
@@ -514,7 +577,8 @@ export default function App() {
           </>
         )}
       </ScrollView>
-    </SafeAreaView>
+      </SafeAreaView>
+    </SafeAreaProvider>
   );
 }
 
@@ -522,7 +586,6 @@ const s = StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: '#070A16',
-    paddingTop: Platform.OS === 'android' ? 30 : 0,
   },
   header: {
     paddingHorizontal: 20,
@@ -606,6 +669,31 @@ const s = StyleSheet.create({
     elevation: 5,
   },
   cardTitle: { fontWeight: '900', color: '#F1F3FF', marginBottom: 7, fontSize: 16 },
+  modeCard: {
+    backgroundColor: '#0B1225',
+    borderWidth: 1,
+    borderColor: '#273457',
+    borderRadius: 20,
+    padding: 16,
+    marginTop: 20,
+  },
+  modeHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  modeCopy: { flex: 1 },
+  modeStatus: { color: '#32E6FF', fontSize: 9, fontWeight: '900', letterSpacing: 1.2 },
+  modeButtons: { flexDirection: 'row', gap: 9, marginTop: 14 },
+  modeButton: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#2C385F',
+    borderRadius: 13,
+    paddingVertical: 11,
+    alignItems: 'center',
+    backgroundColor: '#10162B',
+  },
+  modeButtonSelected: { backgroundColor: '#242058', borderColor: '#7B8CFF' },
+  modeButtonText: { color: '#8994B8', fontWeight: '800' },
+  modeButtonTextSelected: { color: '#F1F3FF' },
+  sourceTag: { color: '#32E6FF', fontSize: 9, fontWeight: '900', letterSpacing: 1.1 },
   big: { fontSize: 40, fontWeight: '900', color: '#7B8CFF' },
   small: { color: '#8994B8', fontSize: 12, lineHeight: 18 },
   safety: { color: '#667194', fontSize: 11, lineHeight: 17, marginTop: 26 },
@@ -686,6 +774,8 @@ const s = StyleSheet.create({
     marginTop: 12,
   },
   toggleRow: { flexDirection: 'row', gap: 8, alignItems: 'center', marginTop: 17 },
+  choiceText: { color: '#8994B8', fontWeight: '900' },
+  choiceTextSelected: { color: '#F1F3FF' },
   smallChoice: {
     borderWidth: 1,
     borderColor: '#2C385F',
@@ -732,5 +822,15 @@ const s = StyleSheet.create({
     borderRadius: 21,
     padding: 17,
   },
+  dangerButton: {
+    borderWidth: 1,
+    borderColor: '#6D3045',
+    backgroundColor: '#25101A',
+    borderRadius: 16,
+    padding: 15,
+    alignItems: 'center',
+    marginTop: 18,
+  },
+  dangerText: { color: '#FF8BA7', fontWeight: '900' },
   price: { fontSize: 20, fontWeight: '900', color: '#32E6FF', marginTop: 14 },
 });
