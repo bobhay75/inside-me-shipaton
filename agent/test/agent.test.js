@@ -62,3 +62,30 @@ test('urgent-risk language bypasses the model', async () => {
     assert.match(body.reflection, /immediate local emergency help/i);
   });
 });
+
+test('mirror rejects an empty draft', async () => {
+  await withServer(async baseUrl => {
+    const response = await fetch(`${baseUrl}/mirror`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ intent: 'I want to be heard.' }),
+    });
+    assert.equal(response.status, 400);
+    assert.deepEqual(await response.json(), { error: 'text is required' });
+  });
+});
+
+test('mirror urgent-risk language bypasses the model', async () => {
+  await withServer(async baseUrl => {
+    const response = await fetch(`${baseUrl}/mirror`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: 'I want to hurt myself right now.', mood: 1, mode: 'spiral' }),
+    });
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.model, 'safety-rule');
+    assert.equal(body.impactScore, 100);
+    assert.match(body.meBetter, /emergency help/i);
+  });
+});
