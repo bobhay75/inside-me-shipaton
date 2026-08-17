@@ -1,4 +1,5 @@
 import express from 'express';
+import { pathToFileURL } from 'node:url';
 import { GoogleGenAI } from '@google/genai';
 import { applicationDefault, getApps, initializeApp } from 'firebase-admin/app';
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
@@ -12,7 +13,7 @@ const ai = new GoogleGenAI({
 });
 
 let db = null;
-let memoryOperational = false;
+let memoryState = 'unverified';
 const requestWindows = new Map();
 const RATE_LIMIT = 20;
 const RATE_WINDOW_MS = 15 * 60 * 1000;
@@ -20,10 +21,12 @@ try {
   if (!getApps().length) initializeApp({ credential: applicationDefault() });
   db = getFirestore();
 } catch (error) {
+  memoryState = 'unavailable';
   console.warn('Firestore memory disabled:', error instanceof Error ? error.message : error);
 }
 
-const app = express();
+export const app = express();
+app.disable('x-powered-by');
 app.use(express.json({ limit: '100kb' }));
 app.use((req, res, next) => {
   const origin = req.headers.origin;
@@ -83,7 +86,7 @@ async function loadMemory(memoryId) {
       .limit(5)
       .get();
 
-    memoryOperational = true;
+    memoryState = 'available';
     return snapshot.docs.map(doc => {
       const data = doc.data();
       return {
@@ -94,7 +97,7 @@ async function loadMemory(memoryId) {
       };
     });
   } catch (error) {
-    memoryOperational = false;
+    memoryState = 'unavailable';
     console.warn('Memory read skipped:', error instanceof Error ? error.message : error);
     return [];
   }
@@ -110,10 +113,10 @@ async function saveMemory(memoryId, data) {
       mood: Number(data.mood || 0),
       createdAt: FieldValue.serverTimestamp(),
     });
-    memoryOperational = true;
+    memoryState = 'available';
     return true;
   } catch (error) {
-    memoryOperational = false;
+    memoryState = 'unavailable';
     console.warn('Memory write skipped:', error instanceof Error ? error.message : error);
     return false;
   }
@@ -135,7 +138,7 @@ function extractJson(text) {
 }
 
 app.get('/health', (_req, res) => {
-  res.json({ ok: true, service: 'me-u-reflection-agent', model: MODEL, memory: memoryOperational });
+  res.json({ ok: true, service: 'me-u-reflection-agent', model: MODEL, memory: memoryState });
 });
 
 app.delete('/memory/:memoryId', async (req, res) => {
@@ -145,10 +148,10 @@ app.delete('/memory/:memoryId', async (req, res) => {
 
   try {
     await db.recursiveDelete(db.collection('meu_memory').doc(memoryId));
-    memoryOperational = true;
+    memoryState = 'available';
     return res.json({ ok: true });
   } catch (error) {
-    memoryOperational = false;
+    memoryState = 'unavailable';
     console.error('Memory deletion failed:', error);
     return res.status(503).json({ error: 'cloud memory could not be deleted' });
   }
@@ -156,9 +159,10 @@ app.delete('/memory/:memoryId', async (req, res) => {
 
 app.post('/reflect', async (req, res) => {
   const body = req.body || {};
+  const suppliedMood = Number(body.mood);
   const entry = {
     text: clean(body.text, 6000),
-    mood: Math.min(5, Math.max(1, Number(body.mood || 3))),
+    mood: Number.isFinite(suppliedMood) ? Math.min(5, Math.max(1, suppliedMood)) : 3,
     involvesPerson: Boolean(body.involvesPerson),
     myPart: clean(body.myPart, 2000),
     theirSide: clean(body.theirSide, 2000),
@@ -231,6 +235,8 @@ app.post('/reflect', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Me+U reflection agent listening on ${PORT} with ${MODEL}`);
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  app.listen(PORT, () => {
+    console.log(`Me+U reflection agent listening on ${PORT} with ${MODEL}`);
+  });
+}

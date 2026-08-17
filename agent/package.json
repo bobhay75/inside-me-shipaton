@@ -1,6 +1,6 @@
 {
   "name": "me-u-reflection-agent",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -8,7 +8,8 @@
   },
   "scripts": {
     "start": "node index.js",
-    "check": "node --check index.js"
+    "check": "node --check index.js && node --check test/agent.test.js",
+    "test": "node --test"
   },
   "dependencies": {
     "@google/genai": "^2.0.0",

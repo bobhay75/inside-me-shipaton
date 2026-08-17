@@ -14,13 +14,15 @@ A random device memory ID is also stored locally. It is not derived from a name,
 
 Cloud reflection is disabled when `EXPO_PUBLIC_REFLECTION_API_URL` is blank. When that endpoint is configured, the completed structured reset and random device memory ID are sent to the Me+U Cloud Run service.
 
+The app asks the user to confirm this cloud processing and the possibility of pseudonymous pattern memory before Cloud AI is enabled. Local-only remains the default.
+
 The server uses Gemini through the Google Gen AI SDK. Gemini/provider credentials remain server-side and must never be placed in the mobile bundle.
 
 ## Optional Firestore memory
 
 When Firestore is available, the server intentionally stores only a short derived pattern label, mood number, chosen response category, and the user's written next move under the random device memory ID. The server does not intentionally persist the raw vent text.
 
-This is hackathon memory, not a finished production privacy architecture. Before a public release, add explicit cloud-memory consent, authentication, rate limiting, retention limits, a delete-memory endpoint, access controls, and a clear privacy policy.
+This is hackathon memory, not a finished production privacy architecture. The prototype includes consent copy, an in-memory request limit, and a delete-memory endpoint. Before a public release, add authentication, durable distributed limits, a documented retention policy, stronger access controls, monitoring, and a full privacy policy.
 
 ## Safety behavior
 

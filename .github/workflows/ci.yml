@@ -19,7 +19,7 @@ jobs:
           node-version: '22'
 
       - name: Install mobile dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
 
       - name: TypeScript check
         run: npm run typecheck
@@ -39,7 +39,10 @@ jobs:
           node-version: '22'
 
       - name: Install agent dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
 
       - name: Check agent JavaScript
         run: npm run check
+
+      - name: Run agent smoke tests
+        run: npm test

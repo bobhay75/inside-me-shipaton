@@ -31,3 +31,7 @@ export async function getMemoryId() {
   await AsyncStorage.setItem(MEMORY_KEY, created);
   return created;
 }
+
+export async function getExistingMemoryId() {
+  return AsyncStorage.getItem(MEMORY_KEY);
+}

@@ -2,27 +2,34 @@
   "expo": {
     "name": "Me+U",
     "slug": "inside-me-shipaton",
-    "version": "0.4.0",
+    "version": "0.5.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
+    "icon": "./assets/icon.png",
     "android": {
       "package": "com.bobsome1.insideme",
       "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#050611"
       },
-      "versionCode": 4
+      "versionCode": 5
     },
     "ios": {
       "bundleIdentifier": "com.bobsome1.insideme",
       "supportsTablet": true
     },
     "plugins": [
-      "expo-dev-client"
+      "expo-dev-client",
+      "expo-system-ui",
+      [
+        "expo-navigation-bar",
+        {
+          "enforceContrast": false,
+          "hidden": false,
+          "style": "dark"
+        }
+      ]
     ],
-    "backgroundColor": "#050611",
-    "androidNavigationBar": {
-      "backgroundColor": "#050611",
-      "barStyle": "light-content"
-    }
+    "backgroundColor": "#050611"
   }
 }

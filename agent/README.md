@@ -16,7 +16,9 @@ The mobile app remains useful without this service. When `EXPO_PUBLIC_REFLECTION
 ```bash
 cd agent
 npm install
-export GEMINI_API_KEY="YOUR_GEMINI_API_KEY"
+gcloud auth application-default login
+export GOOGLE_CLOUD_PROJECT="YOUR_GOOGLE_CLOUD_PROJECT"
+export GOOGLE_CLOUD_LOCATION="global"
 npm start
 ```
 
@@ -55,31 +57,15 @@ gcloud services enable \
   run.googleapis.com \
   cloudbuild.googleapis.com \
   artifactregistry.googleapis.com \
-  secretmanager.googleapis.com \
+  aiplatform.googleapis.com \
   firestore.googleapis.com
 ```
 
-### 3. Store the Gemini API key in Secret Manager
-
-For a new secret:
-
-```bash
-printf '%s' "$GEMINI_API_KEY" | gcloud secrets create gemini-api-key --data-file=-
-```
-
-If the secret already exists:
-
-```bash
-printf '%s' "$GEMINI_API_KEY" | gcloud secrets versions add gemini-api-key --data-file=-
-```
-
-Grant the Cloud Run runtime service account permission to access that secret if your project does not already allow it.
-
-### 4. Optional: create Firestore memory
+### 3. Optional: create Firestore memory
 
 Create a Firestore database in the Google Cloud/Firebase console. The agent still works if Firestore is unavailable; it simply runs without cross-session cloud memory.
 
-### 5. Deploy
+### 4. Deploy
 
 From this `agent` directory:
 
@@ -90,13 +76,24 @@ bash deploy.sh YOUR_PROJECT_ID us-central1 me-u-agent
 Or deploy directly:
 
 ```bash
+gcloud iam service-accounts create me-u-agent-runtime \
+  --display-name="Me+U Cloud Run runtime"
+
+gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
+  --member="serviceAccount:me-u-agent-runtime@YOUR_PROJECT_ID.iam.gserviceaccount.com" \
+  --role="roles/aiplatform.user" \
+  --condition=None
+
 gcloud run deploy me-u-agent \
   --source . \
   --region us-central1 \
   --allow-unauthenticated \
-  --set-env-vars GEMINI_MODEL=gemini-3.5-flash \
-  --update-secrets GEMINI_API_KEY=gemini-api-key:latest
+  --service-account me-u-agent-runtime@YOUR_PROJECT_ID.iam.gserviceaccount.com \
+  --clear-secrets \
+  --set-env-vars GEMINI_MODEL=gemini-3.5-flash,GOOGLE_CLOUD_PROJECT=YOUR_PROJECT_ID,GOOGLE_CLOUD_LOCATION=global
 ```
+
+The service uses Cloud Run application-default credentials to call Vertex AI. It does not need a Gemini API key. The deploy helper also grants the runtime identity Firestore access for optional pseudonymous memory.
 
 Cloud Run returns a service URL such as `https://me-u-agent-xxxxx-uc.a.run.app`.
 
@@ -112,4 +109,4 @@ Then rebuild/restart the Expo app.
 
 Firestore stores only a short derived pattern, mood number, chosen response category, and the user's written next move under a random device ID. The raw vent text is not intentionally persisted by this server.
 
-For a production release, add authentication, rate limiting, an explicit cloud-memory consent control, retention limits, a delete-memory endpoint, abuse monitoring, and stricter access controls before treating this as production infrastructure.
+The mobile UI asks for cloud-processing and pseudonymous-memory consent before enabling Cloud AI. This service includes an in-memory request limit and a delete-memory endpoint. For a production release, add authentication, distributed abuse controls, a documented retention limit, monitoring, and stricter access controls.
