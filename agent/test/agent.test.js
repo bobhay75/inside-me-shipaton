@@ -89,3 +89,20 @@ test('mirror urgent-risk language bypasses the model', async () => {
     assert.match(body.meBetter, /emergency help/i);
   });
 });
+
+test('reveal rejects an empty story', async () => {
+  await withServer(async baseUrl => {
+    const response = await fetch(`${baseUrl}/reveal`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: '' }) });
+    assert.equal(response.status, 400);
+  });
+});
+
+test('reveal urgent-risk language bypasses the model', async () => {
+  await withServer(async baseUrl => {
+    const response = await fetch(`${baseUrl}/reveal`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: 'I might hurt myself.' }) });
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.model, 'safety-rule');
+    assert.equal(body.tags[0], 'urgent-safety');
+  });
+});

@@ -62,12 +62,12 @@ jobs:
           ./gradlew assembleRelease --no-daemon
 
       - name: Name release APK
-        run: mv android/app/build/outputs/apk/release/app-release.apk android/app/build/outputs/apk/release/MeU-v0.6.0.apk
+        run: mv android/app/build/outputs/apk/release/app-release.apk android/app/build/outputs/apk/release/MeU-v0.7.0.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: MeU-v0.6.0
-          path: android/app/build/outputs/apk/release/MeU-v0.6.0.apk
+          name: MeU-v0.7.0
+          path: android/app/build/outputs/apk/release/MeU-v0.7.0.apk
           if-no-files-found: error
           retention-days: 30

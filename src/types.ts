@@ -4,6 +4,23 @@ export type ResponseChoice = 'pause' | 'talk' | 'boundary' | 'let-go';
 
 export type ResetMode = 'message' | 'conflict' | 'decision' | 'spiral';
 
+export type GrowthMode = 'now' | 'trigger' | 'belief' | 'decision' | 'identity';
+
+export type Revelation = {
+  facts: string;
+  story: string;
+  feeling: string;
+  need: string;
+  pattern: string;
+  mine: string;
+  notMine: string;
+  choice: string;
+  question: string;
+  anchor: string;
+  tags: string[];
+  source: 'local' | 'cloud';
+};
+
 export type Entry = {
   id: string;
   createdAt: string;
@@ -24,4 +41,6 @@ export type Entry = {
   gratitudes?: string[];
   nextMove?: string;
   responseChoice?: ResponseChoice;
+  growthMode?: GrowthMode;
+  revelation?: Revelation;
 };
