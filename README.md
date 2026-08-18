@@ -4,7 +4,7 @@ Me+U is a local-first emotional reset and communication app that helps a person 
 
 **write it raw → see what you mean → see one way it may land → lower the heat → choose the next move**
 
-The v0.6 signature experience is **Me×2**, an emotional mirror for the moment before a message, after a conflict, during a hard decision, or inside a spiral. It separates intention from impact, scores heat/clarity/agency, helps regulate the body, and simulates four healthier response paths without pretending to read another person's mind.
+The v0.7 signature experience is the **Inner Mirror**: one honest entry becomes a grounded separation of facts, the story the mind added, feeling, need, a pattern hypothesis, ME/U ownership, a controllable choice, one difficult question, and a memorable anchor. Me×2 remains the communication philosophy underneath it—never mind-reading and never deciding who is right.
 
 The mobile app is built with Expo/React Native. Its optional cloud agent uses **Gemini 3.5 Flash**, the **Google Gen AI SDK**, **Cloud Run**, and optional **Cloud Firestore** pseudonymous memory.
 

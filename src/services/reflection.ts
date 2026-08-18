@@ -1,4 +1,4 @@
-import type { Mood, ResetMode, ResponseChoice } from '../types';
+import type { GrowthMode, Mood, ResetMode, ResponseChoice, Revelation } from '../types';
 import { getExistingMemoryId, getMemoryId } from '../storage';
 
 export type ReflectionInput = {
@@ -30,6 +30,13 @@ export type MirrorResult = {
   heatWords: string[];
   controlCue: string;
   source: 'local' | 'cloud';
+};
+
+export type RevelationInput = {
+  text: string;
+  mode: GrowthMode;
+  feeling?: string;
+  memory?: Array<{ pattern?: string; revelation?: Revelation }>;
 };
 
 const choiceLabel: Record<ResponseChoice, string> = {
@@ -85,6 +92,51 @@ function cleanSentence(value: string) {
     .trim();
   if (!cleaned) return '';
   return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+}
+
+function localRevelation(input: RevelationInput): Revelation {
+  const raw = input.text.trim();
+  const lower = raw.toLowerCase();
+  const control = /\b(make them|they need to|should have|if they would|their fault)\b/i.test(raw);
+  const absolutes = /\b(always|never|everyone|no one|nothing|everything)\b/i.test(raw);
+  const rejection = /\b(left|leave|ignored|unwanted|rejected|abandoned|alone)\b/i.test(raw);
+  const respect = /\b(disrespect|fair|unfair|lied|betray|used|taken advantage)\b/i.test(raw);
+  const fear = /\b(afraid|scared|worried|lose|failure|fail)\b/i.test(raw);
+  const pattern = rejection ? 'Possible rejection alarm' : respect ? 'Possible fairness and dignity alarm' : fear ? 'Possible threat forecasting' : control ? 'Trying to secure relief through another person' : absolutes ? 'A painful moment becoming a permanent story' : 'Protective meaning-making under pressure';
+  const need = rejection ? 'reassurance, belonging, and dependable connection' : respect ? 'dignity, fairness, and clear limits' : fear ? 'safety, clarity, and a manageable next step' : 'to be heard, understood, and able to act with self-respect';
+  const sentences = raw.split(/[.!?]+/).map(value => value.trim()).filter(Boolean);
+  return {
+    facts: sentences[0] ? 'What you directly know: ' + cleanSentence(sentences[0]) : 'The concrete facts have not been separated from the interpretation yet.',
+    story: absolutes ? 'Your mind may be turning this moment into an absolute. That makes the pain feel permanent and removes options.' : 'Your mind is filling unknowns with a protective explanation. It may be right, partly right, or wrong—but it is not yet the same as a verified fact.',
+    feeling: input.feeling?.trim() || (rejection ? 'hurt and afraid of being left' : respect ? 'angry because your dignity feels threatened' : fear ? 'afraid and overloaded' : 'activated, hurt, and looking for certainty'),
+    need,
+    pattern,
+    mine: 'Your words, timing, boundaries, attention, and next action.',
+    notMine: 'Their interpretation, honesty, reaction, choices, and willingness to understand.',
+    choice: control ? 'Stop trying to force the outcome. State the truth, name your boundary, and act on what you control.' : 'Slow the story down, verify what can be verified, and choose the smallest action that matches who you want to be.',
+    question: 'What truth about this hurts to admit—and what becomes possible if you admit it without attacking yourself?',
+    anchor: 'I do not need to control the whole outcome to choose my next right move.',
+    tags: [rejection ? 'rejection' : respect ? 'dignity' : fear ? 'fear' : 'uncertainty', control ? 'control' : absolutes ? 'absolute-thinking' : 'meaning-making'],
+    source: 'local',
+  };
+}
+
+export async function getRevelation(input: RevelationInput, useCloud = false): Promise<Revelation> {
+  const fallback = localRevelation(input);
+  const endpoint = reflectionEndpoint();
+  if (!useCloud || !endpoint) return fallback;
+  const revealEndpoint = endpoint.replace(/\/reflect\/?$/, '/reveal');
+  try {
+    const response = await fetchWithTimeout(revealEndpoint, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...input, memory: input.memory?.slice(0, 5) }),
+    }, 15_000);
+    if (!response.ok) return fallback;
+    const data = (await response.json()) as Partial<Revelation>;
+    const required = ['facts', 'story', 'feeling', 'need', 'pattern', 'mine', 'notMine', 'choice', 'question', 'anchor'] as const;
+    if (!required.every(key => data[key]?.trim())) return fallback;
+    return { ...fallback, ...data, tags: Array.isArray(data.tags) ? data.tags.slice(0, 5).map(String) : fallback.tags, source: 'cloud' } as Revelation;
+  } catch { return fallback; }
 }
 
 export function localMirrorPreview(input: MirrorInput): MirrorResult {

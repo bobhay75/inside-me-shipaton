@@ -61,7 +61,7 @@ function rateLimit(req, res, next) {
   next();
 }
 
-app.use(['/reflect', '/mirror', '/memory'], rateLimit);
+app.use(['/reflect', '/mirror', '/reveal', '/memory'], rateLimit);
 
 function clean(value, max = 4000) {
   return typeof value === 'string' ? value.trim().slice(0, max) : '';
@@ -204,6 +204,44 @@ app.post('/mirror', async (req, res) => {
   } catch (error) {
     console.error('Gemini mirror failed:', error);
     return res.status(502).json({ error: 'The cloud mirror could not analyze this draft.' });
+  }
+});
+
+app.post('/reveal', async (req, res) => {
+  const body = req.body || {};
+  const text = clean(body.text, 8000);
+  const mode = clean(body.mode, 30) || 'now';
+  const feeling = clean(body.feeling, 500);
+  const memory = Array.isArray(body.memory) ? body.memory.slice(0, 5) : [];
+  if (!text) return res.status(400).json({ error: 'text is required' });
+  if (hasUrgentRisk(text)) {
+    return res.json({
+      facts: 'Your words indicate a possible immediate risk of harm.', story: 'This is not a moment to analyze alone.',
+      feeling: 'overwhelmed or unsafe', need: 'immediate human support and physical safety', pattern: 'Immediate safety need',
+      mine: 'Contacting help and moving near a trustworthy person.', notMine: 'Handling this entirely by yourself.',
+      choice: 'Contact local emergency services or a crisis service now and bring a trusted person physically near you.',
+      question: 'Who can be physically present with you right now?', anchor: 'I can involve another human before I take any irreversible action.',
+      tags: ['urgent-safety'], model: 'safety-rule',
+    });
+  }
+  const systemInstruction = `You are Me+U's Inner Mirror: a rigorous, compassionate reflection partner, not a therapist, diagnostician, guru, or judge. Help the user distinguish observation from interpretation, surface emotions and needs, notice a tentative recurring pattern, separate what belongs to ME from what belongs to U, and choose one honest action. Never flatter, shame, spiritualize pain, invent childhood causes, decide who is right, or claim to know another person's mind. Treat patterns as hypotheses. Use the user's plain language. Be penetrating but grounded. Return ONLY JSON with exactly: facts, story, feeling, need, pattern, mine, notMine, choice, question, anchor, tags. facts separates directly observable information from claims. story names the mind's interpretation tentatively. feeling uses emotion words, not accusations. need names a human need without entitlement. pattern is a one-sentence hypothesis. mine and notMine are concise. choice is concrete and controllable. question is one difficult, useful question. anchor is memorable, non-cheesy, under 18 words. tags has 1-5 short neutral pattern tags.`;
+  try {
+    const response = await ai.models.generateContent({
+      model: MODEL,
+      contents: JSON.stringify({ mode, text, feeling, priorPatterns: memory }),
+      config: { systemInstruction, responseMimeType: 'application/json' },
+    });
+    const parsed = extractJson(response.text?.trim() || '');
+    const keys = ['facts', 'story', 'feeling', 'need', 'pattern', 'mine', 'notMine', 'choice', 'question', 'anchor'];
+    if (!parsed || !keys.every(key => clean(parsed[key], 3000))) throw new Error('Gemini returned an incomplete revelation.');
+    return res.json({
+      ...Object.fromEntries(keys.map(key => [key, clean(parsed[key], 3000)])),
+      tags: Array.isArray(parsed.tags) ? parsed.tags.slice(0, 5).map(item => clean(item, 80)).filter(Boolean) : [],
+      model: MODEL,
+    });
+  } catch (error) {
+    console.error('Gemini reveal failed:', error);
+    return res.status(502).json({ error: 'The cloud revelation engine could not complete this reflection.' });
   }
 });
 
