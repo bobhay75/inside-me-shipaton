@@ -192,3 +192,16 @@ See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 - `docs/ARCHITECTURE.md` — judge-facing system diagram
 - `SAFETY_AND_PRIVACY.md` — prototype privacy and safety boundaries
 - `LICENSE` — MIT open-source license
+
+## Reliability update — 2026-11-23
+
+The current mobile source passes TypeScript and the existing cloud-agent tests. This update adds seven local regression cases and repairs journal recovery and local reflection behavior:
+
+- A save updates the visible journal only after AsyncStorage succeeds. Failed writes keep the reflection open; rapid repeated saves are ignored while a save is pending.
+- Invalid or inaccessible journal data produces a recoverable notice and blocks overwriting it. Existing valid older entries remain readable.
+- Screen content no longer uses newly created nested component types on every state update, avoiding unnecessary remounts while typing.
+- The on-device Inner Mirror and message mirror detect the same limited urgent-risk phrases before making a cloud request. This phrase check is a fallback guard, not a clinical risk assessment or a promise to detect every crisis.
+- The local engine labels the submitted account as unverified rather than presenting its first sentence as established fact.
+- Cloud consent names the entry, feeling, and up to five prior reflection summaries actually sent. Sharing failures are recoverable.
+
+Run `npm ci`, `npm run typecheck`, and `npm test` at the repository root; run `npm ci && npm test` in `agent/`. Device acceptance remains necessary for keyboard behavior, storage-denial recovery, screen-reader navigation, and any store submission. A passing APK build does not establish those runtime results. Paid features described elsewhere in this prototype are not a verified purchasable offering in the current Inner Mirror UI.
