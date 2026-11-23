@@ -24,6 +24,9 @@ jobs:
       - name: TypeScript check
         run: npm run typecheck
 
+      - name: Journal and local reflection regressions
+        run: npm test
+
   agent-check:
     runs-on: ubuntu-latest
     defaults:

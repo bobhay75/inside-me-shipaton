@@ -32,9 +32,17 @@ export default function App() {
   const [result, setResult] = useState<Revelation | null>(null);
   const [busy, setBusy] = useState(false);
   const [cloud, setCloud] = useState(false);
+  const [journalReady, setJournalReady] = useState(false);
+  const [journalError, setJournalError] = useState(false);
+  const saving = useRef(false);
   const glow = useRef(new Animated.Value(0)).current;
 
-  useEffect(() => { loadEntries().then(setEntries); }, []);
+  async function reloadJournal() {
+    setJournalReady(false); setJournalError(false);
+    try { setEntries(await loadEntries()); setJournalReady(true); }
+    catch { setJournalError(true); }
+  }
+  useEffect(() => { void reloadJournal(); }, []);
   useEffect(() => {
     const a = Animated.loop(Animated.sequence([
       Animated.timing(glow, { toValue: 1, duration: 2400, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
@@ -44,7 +52,7 @@ export default function App() {
 
   const current = journeys.find(j => j.id === mode) || journeys[0];
   const tagCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
+    const counts: Record<string, number> = Object.create(null);
     entries.forEach(e => e.revelation?.tags.forEach(tag => { counts[tag] = (counts[tag] || 0) + 1; }));
     return Object.entries(counts).sort((a, b) => b[1] - a[1]);
   }, [entries]);
@@ -56,7 +64,7 @@ export default function App() {
   function toggleCloud() {
     if (cloud) return setCloud(false);
     if (!isCloudReflectionConfigured()) return Alert.alert('Private mirror active', 'Cloud intelligence is not configured in this build. The on-device Inner Mirror still works.');
-    Alert.alert('Use deeper AI reflection?', 'Only what you submit is sent for analysis. Me+U treats every conclusion as a hypothesis, never a diagnosis.', [
+    Alert.alert('Use deeper AI reflection?', 'Your entry, selected feeling, and up to five recent reflection summaries are sent to the configured cloud service for analysis. The server does not intentionally save the raw entry. Every conclusion is a hypothesis, never a diagnosis.', [
       { text: 'Stay on device', style: 'cancel' }, { text: 'Use deeper mirror', onPress: () => setCloud(true) },
     ]);
   }
@@ -69,22 +77,31 @@ export default function App() {
     } finally { setBusy(false); }
   }
   async function save() {
-    if (!result) return;
+    if (!result || saving.current || !journalReady) return;
+    saving.current = true; setBusy(true);
     const entry: Entry = {
       id: String(Date.now()), createdAt: new Date().toISOString(), mood: 3 as Mood, text: text.trim(),
       reflection: result.anchor, growthMode: mode, revelation: result,
     };
-    const all = [entry, ...entries]; setEntries(all); await saveEntries(all); setScreen('home');
+    const all = [entry, ...entries];
+    try {
+      await saveEntries(all);
+      setEntries(all); setResult(null); setScreen('home');
+    } catch {
+      Alert.alert('Reflection was not saved', 'Device storage could not save this entry. Your existing journal is unchanged and this reflection is still open. Try saving again.');
+    } finally { saving.current = false; setBusy(false); }
   }
   async function shareAnchor() {
     if (!result) return;
-    await Share.share({ title: 'My Me+U anchor', message: 'My truth for today:\n\n“' + result.anchor + '”\n\nFound with Me+U. The private story stayed private. #InnerMirror' });
+    try { await Share.share({ title: 'My Me+U anchor', message: 'My truth for today:\n\n“' + result.anchor + '”\n\nFound with Me+U. The private story stayed private. #InnerMirror' }); }
+    catch { Alert.alert('Sharing unavailable', 'Your anchor is still available here. Nothing was removed from your journal.'); }
   }
 
-  function Home() {
+  function renderHome() {
     return <ScrollView contentContainerStyle={s.content}>
       <View style={s.top}><View><Text style={s.brand}>me<Text style={s.x}>×</Text>u</Text><Text style={s.micro}>INNER MIRROR</Text></View><Pressable style={s.private} onPress={toggleCloud}><Text style={s.privateText}>{cloud ? '✦ DEEP AI' : '⌁ PRIVATE'}</Text></Pressable></View>
       <View style={s.hero}><Animated.View style={[s.heroGlow, { opacity: glow.interpolate({ inputRange: [0, 1], outputRange: [0.18, 0.48] }), transform: [{ scale: glow.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1.15] }) }] }]} /><Text style={s.heroTag}>WHEN YOUR MIND IS LOUD</Text><Text style={s.heroTitle}>Do not escape it.<Text style={s.x}> See through it.</Text></Text><Text style={s.heroBody}>Bring the real story. Me+U separates what happened from what your pain added—and shows what is yours to do next.</Text><Action title="Something happened" onPress={() => start('now')} /><Text style={s.promise}>No judgment · No diagnosis · No fake positivity</Text></View>
+      {journalError && <View style={s.question}><Text style={s.questionText}>Your saved journal could not be loaded. It has not been overwritten.</Text><Pressable onPress={reloadJournal}><Text style={s.answer}>Retry journal access →</Text></Pressable></View>}
       <Text style={s.heading}>Go beneath the reaction</Text>
       {journeys.slice(1).map(j => <Pressable key={j.id} style={s.journey} onPress={() => start(j.id)}><View style={s.journeyIcon}><Text style={s.journeyGlyph}>{j.icon}</Text></View><View style={s.flex}><Text style={s.journeyTitle}>{j.label}</Text><Text style={s.journeySub}>{j.sub}</Text></View><Text style={s.chev}>›</Text></Pressable>)}
       <View style={s.question}><Text style={s.tag}>THE QUESTION WAITING FOR YOU</Text><Text style={s.questionText}>{returnQuestion}</Text><Pressable onPress={() => start('now')}><Text style={s.answer}>Answer honestly →</Text></Pressable></View>
@@ -92,7 +109,7 @@ export default function App() {
     </ScrollView>;
   }
 
-  function Reveal() {
+  function renderReveal() {
     if (result) return <ScrollView contentContainerStyle={s.content}>
       <View style={s.revealTop}><Pressable onPress={() => setResult(null)}><Text style={s.back}>←</Text></Pressable><Text style={s.micro}>YOUR INNER MIRROR</Text><View style={s.source}><Text style={s.sourceText}>{result.source === 'cloud' ? '✦ DEEP' : '⌁ LOCAL'}</Text></View></View>
       <Text style={s.revealTitle}>Here is what may be happening underneath.</Text><Text style={s.hypothesis}>This is a hypothesis to test against your truth—not a verdict about you.</Text>
@@ -104,26 +121,26 @@ export default function App() {
       <Section tag="04 · THE CHOICE THAT RETURNS YOUR POWER" tone="mint">{result.choice}</Section>
       <View style={s.hardQuestion}><Text style={s.hardLabel}>DO NOT ANSWER TOO QUICKLY</Text><Text style={s.hardText}>{result.question}</Text></View>
       <View style={s.anchor}><Text style={s.anchorTag}>YOUR ANCHOR</Text><Text style={s.anchorText}>“{result.anchor}”</Text></View>
-      <Action title="Keep this revelation" onPress={save} /><View style={s.twoActions}><Pressable style={s.ghost} onPress={shareAnchor}><Text style={s.ghostText}>Share anchor ↗</Text></Pressable><Pressable style={s.ghost} onPress={() => { setText(''); setFeeling(''); setResult(null); }}><Text style={s.ghostText}>Go deeper ↓</Text></Pressable></View>
+      <Action title={busy ? "Saving…" : journalReady ? "Keep this revelation" : "Journal unavailable — retry from Now"} onPress={save} disabled={busy || !journalReady} /><View style={s.twoActions}><Pressable style={s.ghost} onPress={shareAnchor}><Text style={s.ghostText}>Share anchor ↗</Text></Pressable><Pressable style={s.ghost} onPress={() => { setText(''); setFeeling(''); setResult(null); }}><Text style={s.ghostText}>Go deeper ↓</Text></Pressable></View>
     </ScrollView>;
     return <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
       <View style={s.revealTop}><Pressable onPress={() => setScreen('home')}><Text style={s.back}>←</Text></Pressable><Text style={s.micro}>{current.label.toUpperCase()}</Text><Text style={s.step}>01 / 01</Text></View>
       <Text style={s.prompt}>{current.prompt}</Text><Text style={s.permission}>Do not make it wise. Do not make it fair. Make it true.</Text>
-      <TextInput autoFocus multiline value={text} onChangeText={setText} style={s.input} placeholder="Say the part you usually edit out…" placeholderTextColor="#676070" />
+      <TextInput autoFocus multiline maxLength={8000} value={text} onChangeText={setText} style={s.input} placeholder="Say the part you usually edit out…" placeholderTextColor="#676070" />
       <Text style={s.feelingLabel}>What is strongest in your body right now?</Text><View style={s.chips}>{feelings.map(f => <Pressable key={f} onPress={() => setFeeling(f)} style={[s.chip, feeling === f && s.chipOn]}><Text style={[s.chipText, feeling === f && s.chipTextOn]}>{f}</Text></Pressable>)}</View>
-      <View style={s.privacyBox}><Text style={s.lock}>⌁</Text><Text style={s.privacyCopy}>{cloud ? 'Deeper AI is on. Your entry is analyzed, not publicly posted.' : 'On-device mode. Your entry does not leave this phone.'}</Text></View>
+      <View style={s.privacyBox}><Text style={s.lock}>⌁</Text><Text style={s.privacyCopy}>{cloud ? 'Deeper AI is on. This entry and up to five recent reflection summaries are sent for analysis, not publicly posted.' : 'On-device mode. Your entry does not leave this phone.'}</Text></View>
       <Action title={busy ? 'Looking beneath the story…' : 'Show me what I cannot see'} disabled={!text.trim() || busy} onPress={reveal} />
     </ScrollView>;
   }
 
-  function Patterns() {
+  function renderPatterns() {
     return <ScrollView contentContainerStyle={s.content}><Text style={s.micro}>PATTERN CONSTELLATION</Text><Text style={s.title}>Not who you are.<Text style={s.x}> What you have practiced.</Text></Text>
       {!tagCounts.length ? <View style={s.empty}><Text style={s.emptyTitle}>No identity labels here.</Text><Text style={s.emptyBody}>After a few honest mirrors, recurring alarms and coping moves appear here as changeable patterns—not permanent traits.</Text></View> : <View style={s.constellation}>{tagCounts.map(([tag, count], i) => <View key={tag} style={[s.patternOrb, { width: 98 + Math.min(count, 4) * 13, height: 98 + Math.min(count, 4) * 13, borderRadius: 80, borderColor: i % 2 ? '#436D68' : '#614D90' }]}><Text style={s.patternName}>{tag}</Text><Text style={s.patternCount}>{count}×</Text></View>)}</View>}
       <View style={s.question}><Text style={s.tag}>GROWTH IS EVIDENCE</Text><Text style={s.questionText}>A pattern stops defining you the moment you can see it and choose differently.</Text></View>
     </ScrollView>;
   }
 
-  function Self() {
+  function renderSelf() {
     return <ScrollView contentContainerStyle={s.content}><Text style={s.micro}>THE SELF YOU ARE BUILDING</Text><Text style={s.title}>Proof over promises.</Text>
       <View style={s.selfHero}><Text style={s.selfNumber}>{entries.length}</Text><Text style={s.selfLabel}>TRUTHS FACED</Text></View>
       {entries.slice(0, 10).map(e => <View key={e.id} style={s.timeline}><View style={s.timelineDot} /><View style={s.flex}><Text style={s.timelineDate}>{new Date(e.createdAt).toLocaleDateString()} · {(e.growthMode || 'now').toUpperCase()}</Text><Text style={s.timelineAnchor}>{e.revelation?.anchor || e.reflection}</Text><Text style={s.timelineChoice}>{e.revelation?.choice}</Text></View></View>)}
@@ -131,7 +148,7 @@ export default function App() {
     </ScrollView>;
   }
 
-  const view = screen === 'home' ? <Home /> : screen === 'reveal' ? <Reveal /> : screen === 'patterns' ? <Patterns /> : <Self />;
+  const view = screen === 'home' ? renderHome() : screen === 'reveal' ? renderReveal() : screen === 'patterns' ? renderPatterns() : renderSelf();
   return <SafeAreaProvider><SafeAreaView style={s.safe}><StatusBar style="light" /><View style={s.app}>{view}<View style={s.nav}><Pressable style={s.navItem} onPress={() => setScreen('home')}><Text style={[s.navIcon, screen === 'home' && s.navOn]}>◉</Text><Text style={[s.navText, screen === 'home' && s.navOn]}>Now</Text></Pressable><Pressable style={s.navItem} onPress={() => setScreen('patterns')}><Text style={[s.navIcon, screen === 'patterns' && s.navOn]}>✣</Text><Text style={[s.navText, screen === 'patterns' && s.navOn]}>Patterns</Text></Pressable><Pressable style={s.navCore} onPress={() => start('now')}><Text style={s.coreIcon}>⌁</Text><Text style={s.coreText}>MIRROR</Text></Pressable><Pressable style={s.navItem} onPress={() => start('identity')}><Text style={s.navIcon}>◇</Text><Text style={s.navText}>Grow</Text></Pressable><Pressable style={s.navItem} onPress={() => setScreen('self')}><Text style={[s.navIcon, screen === 'self' && s.navOn]}>↗</Text><Text style={[s.navText, screen === 'self' && s.navOn]}>Self</Text></Pressable></View></View></SafeAreaView></SafeAreaProvider>;
 }
 

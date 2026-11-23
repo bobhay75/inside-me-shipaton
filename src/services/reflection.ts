@@ -96,7 +96,19 @@ function cleanSentence(value: string) {
 
 function localRevelation(input: RevelationInput): Revelation {
   const raw = input.text.trim();
-  const lower = raw.toLowerCase();
+  if (hasUrgentRisk(`${raw} ${input.feeling ?? ''}`)) return {
+    facts: 'Your words indicate a possible immediate risk of harm.',
+    story: 'This needs human support before reflection or message coaching.',
+    feeling: 'Feeling unsafe or overwhelmed deserves immediate support.',
+    need: 'Immediate human support and physical safety.',
+    pattern: 'Safety first',
+    mine: 'Pause, move away from anything you could use to cause harm, and ask for immediate help.',
+    notMine: 'You do not have to handle this alone.',
+    choice: 'Contact local emergency help or ask a trusted person to be physically with you now.',
+    question: 'Who can be with you while you get help?',
+    anchor: 'My next step is immediate human support.',
+    tags: ['safety-support'], source: 'local',
+  };
   const control = /\b(make them|they need to|should have|if they would|their fault)\b/i.test(raw);
   const absolutes = /\b(always|never|everyone|no one|nothing|everything)\b/i.test(raw);
   const rejection = /\b(left|leave|ignored|unwanted|rejected|abandoned|alone)\b/i.test(raw);
@@ -106,7 +118,7 @@ function localRevelation(input: RevelationInput): Revelation {
   const need = rejection ? 'reassurance, belonging, and dependable connection' : respect ? 'dignity, fairness, and clear limits' : fear ? 'safety, clarity, and a manageable next step' : 'to be heard, understood, and able to act with self-respect';
   const sentences = raw.split(/[.!?]+/).map(value => value.trim()).filter(Boolean);
   return {
-    facts: sentences[0] ? 'What you directly know: ' + cleanSentence(sentences[0]) : 'The concrete facts have not been separated from the interpretation yet.',
+    facts: sentences[0] ? 'Your account, not independently verified: ' + cleanSentence(sentences[0]) : 'The concrete facts have not been separated from the interpretation yet.',
     story: absolutes ? 'Your mind may be turning this moment into an absolute. That makes the pain feel permanent and removes options.' : 'Your mind is filling unknowns with a protective explanation. It may be right, partly right, or wrong—but it is not yet the same as a verified fact.',
     feeling: input.feeling?.trim() || (rejection ? 'hurt and afraid of being left' : respect ? 'angry because your dignity feels threatened' : fear ? 'afraid and overloaded' : 'activated, hurt, and looking for certainty'),
     need,
@@ -124,7 +136,7 @@ function localRevelation(input: RevelationInput): Revelation {
 export async function getRevelation(input: RevelationInput, useCloud = false): Promise<Revelation> {
   const fallback = localRevelation(input);
   const endpoint = reflectionEndpoint();
-  if (!useCloud || !endpoint) return fallback;
+  if (!useCloud || !endpoint || hasUrgentRisk(`${input.text} ${input.feeling ?? ''}`)) return fallback;
   const revealEndpoint = endpoint.replace(/\/reflect\/?$/, '/reveal');
   try {
     const response = await fetchWithTimeout(revealEndpoint, {
@@ -141,6 +153,14 @@ export async function getRevelation(input: RevelationInput, useCloud = false): P
 
 export function localMirrorPreview(input: MirrorInput): MirrorResult {
   const combined = `${input.text} ${input.intent}`;
+  if (hasUrgentRisk(combined)) return {
+    me: 'Immediate human support comes before message coaching.',
+    meX2: 'These words may indicate an immediate risk of harm.',
+    meBetter: 'I need help staying safe. Please be with me while I contact local emergency help.',
+    impactScore: 100, clarityScore: 100, agencyScore: 30, heatWords: [],
+    controlCue: 'Contact local emergency help or ask a trusted person to be physically with you now.',
+    source: 'local',
+  };
   const lowered = combined.toLowerCase();
   const heatWords = heatTerms.filter(term => lowered.includes(term));
   const punctuationHeat = (combined.match(/!/g) || []).length * 4 + (combined.match(/\b[A-Z]{3,}\b/g) || []).length * 5;
@@ -232,6 +252,7 @@ export async function getReflection(
   useCloud = false,
 ): Promise<ReflectionResult> {
   const endpoint = reflectionEndpoint();
+  if (hasUrgentRisk(`${input.text} ${input.nextMove}`)) return { reflection: localReflection(input), source: 'local' };
 
   if (useCloud && endpoint) {
     try {
@@ -258,7 +279,7 @@ export async function getReflection(
 export async function getMirrorPreview(input: MirrorInput, useCloud = false): Promise<MirrorResult> {
   const fallback = localMirrorPreview(input);
   const endpoint = reflectionEndpoint();
-  if (!useCloud || !endpoint) return fallback;
+  if (!useCloud || !endpoint || hasUrgentRisk(`${input.text} ${input.intent}`)) return fallback;
 
   const mirrorEndpoint = endpoint.replace(/\/reflect\/?$/, '/mirror');
   try {
